@@ -28,7 +28,12 @@ jobs:
       with:
         github-token: ${{secrets.GITHUB_TOKEN}}
 
-    - name: Run _build
+    - name: Build
+      run: >-
+        dotnet build src/Bannerlord.HarmonyAnalyzer.sln --configuration Release;
+      shell: pwsh
+
+    - name: Pack
       run: >-
         dotnet pack src/Bannerlord.HarmonyAnalyzer.sln --configuration Release -o "./packages";
       shell: pwsh
