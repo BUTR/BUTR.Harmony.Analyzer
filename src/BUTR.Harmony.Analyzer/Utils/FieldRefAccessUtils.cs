@@ -56,7 +56,7 @@ namespace BUTR.Harmony.Analyzer.Utils
             //    yield break;
             //}
 
-            if (ReflectionUtils.FindFieldDefinition(context, metadataObject, objectTypeDefinition, false, fieldName) is not { } fieldDefinition)
+            if (ReflectionUtils.FindFieldDefinition(context, metadataObject, objectTypeDefinition, true, fieldName) is not { } fieldDefinition)
             {
                 yield return RuleIdentifiers.ReportMember(context.Operation, objectTypeName, fieldName);
                 yield break;
@@ -96,7 +96,7 @@ namespace BUTR.Harmony.Analyzer.Utils
                     yield break;
                 }
 
-                if (false && objectType.BaseType is { } baseType)
+                if (true && objectType.BaseType is { } baseType)
                 {
                     objectType = baseType;
                     continue;
@@ -109,35 +109,30 @@ namespace BUTR.Harmony.Analyzer.Utils
             yield return RuleIdentifiers.ReportMember(context.Operation, objectTypeName, fieldName);
         }
 
-
         private static string RemoveArity(string str)
         {
-            while (str.Contains("`"))
+            var buffer = str.Length < 1 * 1024 * 1024 ? stackalloc char[str.Length] : new char[str.Length];
+            //Span<char> tempBuffer = stackalloc char[str.Length];
+            str.AsSpan().CopyTo(buffer);
+            while (buffer.IndexOf('`') != -1)
             {
-                str = RemoveArityInternal(str.AsSpan());
+                var arityStart = buffer.IndexOf('`');
+                var arityEnd = buffer.IndexOf('<');
+                while (arityStart > arityEnd)
+                {
+                    arityEnd += buffer.Slice(arityEnd + 1).IndexOf('<') + 1;
+                }
+
+                buffer.Slice(0, arityStart).CopyTo(buffer);
+                buffer.Slice(arityEnd).CopyTo(buffer.Slice(arityStart));
+                //buffer.Slice(0, arityStart).CopyTo(tempBuffer);
+                //buffer.Slice(arityEnd).CopyTo(tempBuffer.Slice(arityStart));
+
+                //tempBuffer.CopyTo(buffer);
+                buffer = buffer.Slice(0, arityStart + buffer.Length - arityEnd);
+
             }
-            return str;
-        }
-
-        private static string RemoveArityInternal(ReadOnlySpan<char> str)
-        {
-            var arityStart = str.IndexOf('`');
-            var arityEnd = str.IndexOf('<');
-            if (arityStart > arityEnd)
-            {
-                throw new Exception();
-            }
-
-            var pt1 = str.Slice(0, arityStart);
-            var pt2 = str.Slice(arityEnd);
-
-            var buffer = new char[pt1.Length + pt2.Length];
-            var span = new Span<char>(buffer);
-
-            pt1.CopyTo(span);
-            pt2.CopyTo(span.Slice(pt1.Length));
-
-            return new string(buffer);
+            return buffer.ToString();
         }
     }
 }

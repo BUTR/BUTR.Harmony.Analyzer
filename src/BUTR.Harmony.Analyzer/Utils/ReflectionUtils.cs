@@ -36,18 +36,15 @@ namespace BUTR.Harmony.Analyzer.Utils
         public static ImmutableArray<ITypeSymbol> GetTypeInfos(SemanticModel? semanticModel, ArgumentSyntax argument, CancellationToken ct)
         {
             if (semanticModel is null) return ImmutableArray<ITypeSymbol>.Empty;
+            if (argument.Expression is not TypeOfExpressionSyntax expression) return ImmutableArray<ITypeSymbol>.Empty;
 
-            if (argument.Expression is TypeOfExpressionSyntax expression)
+            var type = semanticModel.GetTypeInfo(expression.Type, ct);
+            if (type.Type.TypeKind == TypeKind.TypeParameter && type.Type is ITypeParameterSymbol typeParameterSymbol)
             {
-                var type = semanticModel.GetTypeInfo(expression.Type, ct);
-                if (type.Type.TypeKind == TypeKind.TypeParameter && type.Type is ITypeParameterSymbol typeParameterSymbol)
-                {
-                    return typeParameterSymbol.ConstraintTypes;
-                }
-                return ImmutableArray.Create(type.Type);
+                return typeParameterSymbol.ConstraintTypes;
             }
+            return ImmutableArray.Create(type.Type);
 
-            return ImmutableArray<ITypeSymbol>.Empty;
         }
         public static string? GetString(SemanticModel? semanticModel, ArgumentSyntax argument, CancellationToken ct)
         {
@@ -69,9 +66,8 @@ namespace BUTR.Harmony.Analyzer.Utils
 
         public static TypeDefinition? FindTypeDefinition(MetadataReader metadata, string fullTypeName)
         {
-            foreach (var typeDefinitionHandle in metadata.TypeDefinitions)
+            foreach (var typeDefinition in metadata.TypeDefinitions.Select(metadata.GetTypeDefinition))
             {
-                var typeDefinition = metadata.GetTypeDefinition(typeDefinitionHandle);
                 var typeDefNamespace = metadata.GetString(typeDefinition.Namespace);
                 var typeDefName = metadata.GetString(typeDefinition.Name);
                 var typeDefFullName = typeDefNamespace + "." + typeDefName;
@@ -83,150 +79,91 @@ namespace BUTR.Harmony.Analyzer.Utils
             return null;
         }
 
-        public static FieldDefinition? FindFieldDefinition(OperationAnalysisContext context, MetadataReader metadata, TypeDefinition typeDefinition, bool checkBase, string fieldName)
+        public static FieldDefinition? FindFieldDefinition(OperationAnalysisContext context, MetadataReader metadata, TypeDefinition typeDef, bool checkBaseTypes, string fieldName)
         {
-            while (true)
-            {
-                foreach (var fieldDefinitionHandle in typeDefinition.GetFields())
-                {
-                    var fieldDefinition = metadata.GetFieldDefinition(fieldDefinitionHandle);
-                    var fieldDefName = metadata.GetString(fieldDefinition.Name);
-                    if (string.Equals(fieldDefName, fieldName, StringComparison.Ordinal))
-                    {
-                        return fieldDefinition;
-                    }
-                }
-
-                if (checkBase && !typeDefinition.BaseType.IsNil)
-                {
-                    if (typeDefinition.BaseType.Kind == HandleKind.TypeDefinition)
-                    {
-                        typeDefinition = metadata.GetTypeDefinition((TypeDefinitionHandle) typeDefinition.BaseType);
-                        continue;
-                    }
-                    if (typeDefinition.BaseType.Kind == HandleKind.TypeReference)
-                    {
-                        var baseTypeRef = metadata.GetTypeReference((TypeReferenceHandle) typeDefinition.BaseType);
-                        var (baseTypeDefinition, peReader) = FindTypeDefinitionFromTypeReference(context, metadata, baseTypeRef);
-                        using (peReader)
-                        {
-                            var baseMetadataReader = peReader.GetMetadataReader();
-                            return baseTypeDefinition is { } baseTypeDefinition2
-                                ? FindFieldDefinition(context, baseMetadataReader, baseTypeDefinition2, checkBase, fieldName)
-                                : null;
-                        }
-                    }
-                }
-
-                break;
-            }
-            return null;
+            return FindMemberDefinition(context, metadata, typeDef, checkBaseTypes,
+                x => x.GetFields().Select(metadata.GetFieldDefinition),
+                x => metadata.GetString(x.Name),
+                fieldName);
         }
 
-        public static PropertyDefinition? FindPropertyDefinition(OperationAnalysisContext context, MetadataReader metadata, TypeDefinition typeDefinition, bool checkBase, string propertyName)
+        public static PropertyDefinition? FindPropertyDefinition(OperationAnalysisContext context, MetadataReader metadata, TypeDefinition typeDef, bool checkBaseTypes, string propertyName)
         {
-            while (true)
-            {
-                foreach (var propertyDefinitionHandle in typeDefinition.GetProperties())
-                {
-                    var propertyDefinition = metadata.GetPropertyDefinition(propertyDefinitionHandle);
-                    var propertyDefName = metadata.GetString(propertyDefinition.Name);
-                    if (string.Equals(propertyDefName, propertyName, StringComparison.Ordinal))
-                    {
-                        return propertyDefinition;
-                    }
-                }
-
-                if (checkBase && !typeDefinition.BaseType.IsNil)
-                {
-                    if (typeDefinition.BaseType.Kind == HandleKind.TypeDefinition)
-                    {
-                        typeDefinition = metadata.GetTypeDefinition((TypeDefinitionHandle) typeDefinition.BaseType);
-                        continue;
-                    }
-                    if (typeDefinition.BaseType.Kind == HandleKind.TypeReference)
-                    {
-                        var baseTypeRef = metadata.GetTypeReference((TypeReferenceHandle) typeDefinition.BaseType);
-                        var (baseTypeDefinition, peReader) = FindTypeDefinitionFromTypeReference(context, metadata, baseTypeRef);
-                        using (peReader)
-                        {
-                            var baseMetadataReader = peReader.GetMetadataReader();
-                            return baseTypeDefinition is { } baseTypeDefinition2
-                                ? FindPropertyDefinition(context, baseMetadataReader, baseTypeDefinition2, checkBase, propertyName)
-                                : null;
-                        }
-                    }
-                }
-
-                break;
-            }
-            return null;
+            return FindMemberDefinition(context, metadata, typeDef, checkBaseTypes,
+                definition => definition.GetProperties().Select(metadata.GetPropertyDefinition),
+                definition => metadata.GetString(definition.Name),
+                propertyName);
         }
 
-        public static MethodDefinition? FindMethodDefinition(OperationAnalysisContext context, MetadataReader metadata, TypeDefinition typeDefinition, bool checkBase, string methodName)
+        public static MethodDefinition? FindMethodDefinition(OperationAnalysisContext context, MetadataReader metadata, TypeDefinition typeDef, bool checkBaseTypes, string methodName)
+        {
+            return FindMemberDefinition(context, metadata, typeDef, checkBaseTypes,
+                definition => definition.GetMethods().Select(metadata.GetMethodDefinition),
+                definition => metadata.GetString(definition.Name),
+                methodName);
+        }
+
+        private static TMember? FindMemberDefinition<TMember>(
+            OperationAnalysisContext context,
+            MetadataReader metadata,
+            TypeDefinition typeDef,
+            bool checkBaseTypes,
+            Func<TypeDefinition, IEnumerable<TMember>> getMembersFromTypeDef,
+            Func<TMember, string> getMemberName,
+            string memberName) where TMember : struct
         {
             while (true)
             {
-                foreach (var methodDefinitionHandle in typeDefinition.GetMethods())
+                foreach (var methodDef in getMembersFromTypeDef(typeDef))
                 {
-                    var methodDefinition = metadata.GetMethodDefinition(methodDefinitionHandle);
-                    var methodDefName = metadata.GetString(methodDefinition.Name);
-                    if (string.Equals(methodDefName, methodName, StringComparison.Ordinal))
+                    var methodDefName = getMemberName(methodDef);
+                    if (string.Equals(methodDefName, memberName, StringComparison.Ordinal))
                     {
-                        return methodDefinition;
+                        return methodDef;
                     }
                 }
 
-                if (checkBase && !typeDefinition.BaseType.IsNil)
+                if (!checkBaseTypes || typeDef.BaseType.IsNil) break;
+
+                if (typeDef.BaseType.Kind == HandleKind.TypeDefinition)
                 {
-                    if (typeDefinition.BaseType.Kind == HandleKind.TypeDefinition)
-                    {
-                        typeDefinition = metadata.GetTypeDefinition((TypeDefinitionHandle) typeDefinition.BaseType);
-                        continue;
-                    }
-                    if (typeDefinition.BaseType.Kind == HandleKind.TypeReference)
-                    {
-                        var baseTypeRef = metadata.GetTypeReference((TypeReferenceHandle) typeDefinition.BaseType);
-                        var (baseTypeDefinition, peReader) = FindTypeDefinitionFromTypeReference(context, metadata, baseTypeRef);
-                        using (peReader)
-                        {
-                            var baseMetadataReader = peReader.GetMetadataReader();
-                            return baseTypeDefinition is { } baseTypeDefinition2
-                                ? FindMethodDefinition(context, baseMetadataReader, baseTypeDefinition2, checkBase, methodName)
-                                : null;
-                        }
-                    }
+                    typeDef = metadata.GetTypeDefinition((TypeDefinitionHandle) typeDef.BaseType);
+                    continue;
                 }
 
-                break;
+                if (typeDef.BaseType.Kind == HandleKind.TypeReference)
+                {
+                    var baseTypeRef = metadata.GetTypeReference((TypeReferenceHandle) typeDef.BaseType);
+                    var (baseTypeDefNullable, peReader) = FindTypeDefinitionFromTypeReference(context, metadata, baseTypeRef);
+                    using var reader = peReader;
+                    var baseMetadata = reader.GetMetadataReader();
+                    return baseTypeDefNullable is { } baseTypeDef
+                        ? FindMemberDefinition(context, baseMetadata, baseTypeDef, checkBaseTypes, getMembersFromTypeDef, getMemberName, memberName)
+                        : null;
+                }
             }
             return null;
         }
 
         private static (TypeDefinition?, PEReader) FindTypeDefinitionFromTypeReference(OperationAnalysisContext context, MetadataReader metadata, TypeReference typeReference)
         {
-            var baseTypeRefNamespace = metadata.GetString(typeReference.Namespace);
-            var baseTypeRefName = metadata.GetString(typeReference.Name);
+            var typeRefNamespace = metadata.GetString(typeReference.Namespace);
+            var typeRefName = metadata.GetString(typeReference.Name);
 
-            var scope = typeReference.ResolutionScope;
-            var asm = metadata.GetAssemblyReference((AssemblyReferenceHandle) scope);
+            var asm = metadata.GetAssemblyReference((AssemblyReferenceHandle) typeReference.ResolutionScope);
             var asmName = metadata.GetString(asm.Name);
             var assembly = GetAssemblies(context).FirstOrDefault(a => a.Name == asmName);
             var typeSymbolRef = context.Compilation.GetMetadataReference(assembly);
-            if (typeSymbolRef is PortableExecutableReference @ref && File.Exists(@ref.FilePath))
+            if (typeSymbolRef is not PortableExecutableReference @ref || !File.Exists(@ref.FilePath)) return default;
+            var peReaderObject = new PEReader(File.ReadAllBytes(@ref.FilePath).ToImmutableArray());
+            var metadataObject = peReaderObject.GetMetadataReader();
+            var typeDef = metadataObject.TypeDefinitions.Select(metadataObject.GetTypeDefinition).FirstOrDefault(typeDef =>
             {
-                var peReaderObject = new PEReader(File.ReadAllBytes(@ref.FilePath).ToImmutableArray());
-                var metadataObject = peReaderObject.GetMetadataReader();
-                var typeHandle = metadataObject.TypeDefinitions.FirstOrDefault(typeDefHandle =>
-                {
-                    var typeDef = metadataObject.GetTypeDefinition(typeDefHandle);
-                    var @namespace = metadataObject.GetString(typeDef.Namespace);
-                    var name = metadataObject.GetString(typeDef.Name);
-                    return @namespace == baseTypeRefNamespace && name == baseTypeRefName;
-                });
-                return (metadataObject.GetTypeDefinition(typeHandle), peReaderObject);
-            }
-            return default;
+                var @namespace = metadataObject.GetString(typeDef.Namespace);
+                var name = metadataObject.GetString(typeDef.Name);
+                return @namespace == typeRefNamespace && name == typeRefName;
+            });
+            return (typeDef, peReaderObject);
         }
     }
 }
