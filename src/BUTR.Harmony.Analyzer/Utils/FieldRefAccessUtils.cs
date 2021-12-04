@@ -12,20 +12,6 @@ namespace BUTR.Harmony.Analyzer.Utils
 {
     internal class FieldRefAccessUtils
     {
-        public static readonly DiagnosticDescriptor WrongTypeRule = new(
-            RuleIdentifiers.WrongType,
-            title: "Wrong type!",
-            messageFormat: "Wrong type for Type '{0}'! Expected '{1}', actual '{2}'",
-            RuleCategories.Usage,
-            DiagnosticSeverity.Warning,
-            isEnabledByDefault: true,
-            description: "",
-            helpLinkUri: RuleIdentifiers.GetHelpUri(RuleIdentifiers.WrongType));
-
-
-
-
-
         public static void FindAndReportForFieldRefAccess(OperationAnalysisContext context, ITypeSymbol objectType, ITypeSymbol fieldType, string fieldName)
         {
             foreach (var diagnostic in DiagnosticsFieldRefAccess(context, objectType, fieldType, fieldName))
