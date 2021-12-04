@@ -2,6 +2,10 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
+
+    <GITHUB_RUN_NUMBER Condition="$(GITHUB_RUN_NUMBER) == ''">0</GITHUB_RUN_NUMBER>
+    <Version>1.0.1.$(GITHUB_RUN_NUMBER)</Version>
+
     <IncludeBuildOutput>false</IncludeBuildOutput>
     <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
@@ -11,6 +15,7 @@
     <PackageId>BUTR.Harmony.Analyzer</PackageId>
     <PackageVersion>1.0.0.25</PackageVersion>
     <Authors>BUTR</Authors>
+    <Owners>BUTR</Owners>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/BUTR/BUTR.Harmony.Analyzer</PackageProjectUrl>
     <RepositoryUrl>https://github.com/BUTR/BUTR.Harmony.Analyzer</RepositoryUrl>

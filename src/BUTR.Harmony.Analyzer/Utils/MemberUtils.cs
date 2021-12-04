@@ -12,78 +12,6 @@ namespace BUTR.Harmony.Analyzer.Utils
 {
     internal static class MemberUtils
     {
-        public static readonly DiagnosticDescriptor AssemblyRule = new(
-            RuleIdentifiers.AssemblyNotFound,
-            title: "Assembly does not exist for Type",
-            messageFormat: "Assembly '{0}' does not exist for Type '{1}'",
-            RuleCategories.Usage,
-            DiagnosticSeverity.Warning,
-            isEnabledByDefault: true,
-            description: "",
-            helpLinkUri: RuleIdentifiers.GetHelpUri(RuleIdentifiers.AssemblyNotFound));
-
-        public static readonly DiagnosticDescriptor TypeRule = new(
-            RuleIdentifiers.TypeNotFound,
-            title: "Type was not found",
-            messageFormat: "Type '{0}' was not found",
-            RuleCategories.Usage,
-            DiagnosticSeverity.Warning,
-            isEnabledByDefault: true,
-            description: "",
-            helpLinkUri: RuleIdentifiers.GetHelpUri(RuleIdentifiers.TypeNotFound));
-
-        public static readonly DiagnosticDescriptor MemberRule = new(
-            RuleIdentifiers.MemberDoesntExists,
-            title: "Member does not exist in Type",
-            messageFormat: "Member '{0}' does not exist in Type '{1}'",
-            RuleCategories.Usage,
-            DiagnosticSeverity.Warning,
-            isEnabledByDefault: true,
-            description: "",
-            helpLinkUri: RuleIdentifiers.GetHelpUri(RuleIdentifiers.MemberDoesntExists));
-
-        public static readonly DiagnosticDescriptor PropertyGetterRule = new(
-            RuleIdentifiers.MissingGetter,
-            title: "Property does not have a get method",
-            messageFormat: "Member '{0}' does not have a get method",
-            RuleCategories.Usage,
-            DiagnosticSeverity.Warning,
-            isEnabledByDefault: true,
-            description: "",
-            helpLinkUri: RuleIdentifiers.GetHelpUri(RuleIdentifiers.MissingGetter));
-
-        public static readonly DiagnosticDescriptor PropertySetterRule = new(
-            RuleIdentifiers.MissingSetter,
-            title: "Property does not have a set method",
-            messageFormat: "Member '{0}'does not have a set method",
-            RuleCategories.Usage,
-            DiagnosticSeverity.Warning,
-            isEnabledByDefault: true,
-            description: "",
-            helpLinkUri: RuleIdentifiers.GetHelpUri(RuleIdentifiers.MissingSetter));
-
-
-        private static Diagnostic ReportAssembly(IOperation operation, string assemblyName, string typeName)
-        {
-            return DiagnosticUtils.CreateDiagnostic(AssemblyRule, operation, assemblyName, typeName);
-        }
-        private static Diagnostic ReportType(IOperation operation, string typeName)
-        {
-            return DiagnosticUtils.CreateDiagnostic(TypeRule, operation, typeName);
-        }
-        private static Diagnostic ReportMember(IOperation operation, string typeName, string memberName)
-        {
-            return DiagnosticUtils.CreateDiagnostic(MemberRule, operation, memberName, typeName);
-        }
-        private static Diagnostic ReportMissingGetter(IOperation operation, string propertyName)
-        {
-            return DiagnosticUtils.CreateDiagnostic(PropertyGetterRule, operation, propertyName);
-        }
-        private static Diagnostic ReportMissingSetter(IOperation operation, string propertyName)
-        {
-            return DiagnosticUtils.CreateDiagnostic(PropertySetterRule, operation, propertyName);
-        }
-
         public static void FindAndReportForMembers(OperationAnalysisContext context, ImmutableArray<ITypeSymbol> typeSymbols, MemberFlags memberFlags, string memberName)
         {
             var diagnostics = new Dictionary<ITypeSymbol, ImmutableArray<Diagnostic>>();
@@ -120,7 +48,7 @@ namespace BUTR.Harmony.Analyzer.Utils
             var type = ReflectionUtils.GetAssemblies(context).Select(a => a.GetTypeByMetadataName(typeName)).FirstOrDefault(t => t is not null);
             if (type is null)
             {
-                context.ReportDiagnostic(ReportType(context.Operation, typeName));
+                context.ReportDiagnostic(RuleIdentifiers.ReportType(context.Operation, typeName));
                 return;
             }
 
@@ -153,14 +81,14 @@ namespace BUTR.Harmony.Analyzer.Utils
 
             if (ReflectionUtils.FindTypeDefinition(metadata, typeName) is not { } typeDefinition)
             {
-                yield return ReportType(context.Operation, typeName);
+                yield return RuleIdentifiers.ReportType(context.Operation, typeName);
                 yield break;
             }
 
             var checkBase = !memberFlags.HasFlag(MemberFlags.Declared);
             if (memberFlags.HasFlag(MemberFlags.Field) && ReflectionUtils.FindFieldDefinition(context, metadata, typeDefinition, checkBase, memberName) is not { })
             {
-                yield return ReportMember(context.Operation, typeName, memberName);
+                yield return RuleIdentifiers.ReportMember(context.Operation, typeName, memberName);
                 yield break;
             }
             if (memberFlags.HasFlag(MemberFlags.Property))
@@ -170,16 +98,16 @@ namespace BUTR.Harmony.Analyzer.Utils
                     var accessors = propertyDefinition.GetAccessors();
                     if (memberFlags.HasFlag(MemberFlags.Getter) && accessors.Getter.IsNil)
                     {
-                        yield return ReportMissingGetter(context.Operation, memberName);
+                        yield return RuleIdentifiers.ReportMissingGetter(context.Operation, memberName);
                     }
                     if (memberFlags.HasFlag(MemberFlags.Setter) && accessors.Setter.IsNil)
                     {
-                        yield return ReportMissingSetter(context.Operation, memberName);
+                        yield return RuleIdentifiers.ReportMissingSetter(context.Operation, memberName);
                     }
                 }
                 else
                 {
-                    yield return ReportMember(context.Operation, typeName, memberName);
+                    yield return RuleIdentifiers.ReportMember(context.Operation, typeName, memberName);
                     yield break;
                 }
 
@@ -187,7 +115,7 @@ namespace BUTR.Harmony.Analyzer.Utils
             }
             if (memberFlags.HasFlag(MemberFlags.Method) && ReflectionUtils.FindMethodDefinition(context, metadata, typeDefinition, checkBase, memberName) is not { })
             {
-                yield return ReportMember(context.Operation, typeName, memberName);
+                yield return RuleIdentifiers.ReportMember(context.Operation, typeName, memberName);
                 yield break;
             }
         }
@@ -205,7 +133,7 @@ namespace BUTR.Harmony.Analyzer.Utils
                     {
                         if (member is not IFieldSymbol)
                         {
-                            yield return ReportMember(context.Operation, typeName, memberName);
+                            yield return RuleIdentifiers.ReportMember(context.Operation, typeName, memberName);
                         }
                         yield break;
                     }
@@ -215,21 +143,21 @@ namespace BUTR.Harmony.Analyzer.Utils
                         {
                             if (memberFlags.HasFlag(MemberFlags.Getter) && propertySymbol.GetMethod is null)
                             {
-                                yield return ReportMissingGetter(context.Operation, memberName);
+                                yield return RuleIdentifiers.ReportMissingGetter(context.Operation, memberName);
                             }
                             if (memberFlags.HasFlag(MemberFlags.Setter) && propertySymbol.SetMethod is null)
                             {
-                                yield return ReportMissingSetter(context.Operation, memberName);
+                                yield return RuleIdentifiers.ReportMissingSetter(context.Operation, memberName);
                             }
                         }
-                        yield return ReportMember(context.Operation, typeName, memberName);
+                        yield return RuleIdentifiers.ReportMember(context.Operation, typeName, memberName);
                         yield break;
                     }
                     if (memberFlags.HasFlag(MemberFlags.Method))
                     {
                         if (member is not IMethodSymbol)
                         {
-                            yield return ReportMember(context.Operation, typeName, memberName);
+                            yield return RuleIdentifiers.ReportMember(context.Operation, typeName, memberName);
                         }
                         yield break;
                     }
@@ -245,7 +173,7 @@ namespace BUTR.Harmony.Analyzer.Utils
             }
 
             // We haven't found the member in the exact type or base classes. Report that.
-            yield return ReportMember(context.Operation, typeName, memberName);
+            yield return RuleIdentifiers.ReportMember(context.Operation, typeName, memberName);
         }
     }
 }

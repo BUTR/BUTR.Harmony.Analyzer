@@ -22,22 +22,8 @@ namespace BUTR.Harmony.Analyzer.Utils
             description: "",
             helpLinkUri: RuleIdentifiers.GetHelpUri(RuleIdentifiers.WrongType));
 
-        private static Diagnostic ReportAssembly(IOperation operation, string assemblyName, string typeName)
-        {
-            return DiagnosticUtils.CreateDiagnostic(MemberUtils.AssemblyRule, operation, assemblyName, typeName);
-        }
-        private static Diagnostic ReportType(IOperation operation, string typeName)
-        {
-            return DiagnosticUtils.CreateDiagnostic(MemberUtils.TypeRule, operation, typeName);
-        }
-        private static Diagnostic ReportMember(IOperation operation, string typeName, string memberName)
-        {
-            return DiagnosticUtils.CreateDiagnostic(MemberUtils.MemberRule, operation, memberName, typeName);
-        }
-        private static Diagnostic ReportWrongType(IOperation operation, string holderType, string expectedType, string actualType)
-        {
-            return DiagnosticUtils.CreateDiagnostic(WrongTypeRule, operation, holderType, expectedType, actualType);
-        }
+
+
 
 
         public static void FindAndReportForFieldRefAccess(OperationAnalysisContext context, ITypeSymbol objectType, ITypeSymbol fieldType, string fieldName)
@@ -74,7 +60,7 @@ namespace BUTR.Harmony.Analyzer.Utils
 
             if (ReflectionUtils.FindTypeDefinition(metadataObject, objectTypeName) is not { } objectTypeDefinition)
             {
-                yield return ReportType(context.Operation, objectTypeName);
+                yield return RuleIdentifiers.ReportType(context.Operation, objectTypeName);
                 yield break;
             }
 
@@ -86,7 +72,7 @@ namespace BUTR.Harmony.Analyzer.Utils
 
             if (ReflectionUtils.FindFieldDefinition(context, metadataObject, objectTypeDefinition, false, fieldName) is not { } fieldDefinition)
             {
-                yield return ReportMember(context.Operation, objectTypeName, fieldName);
+                yield return RuleIdentifiers.ReportMember(context.Operation, objectTypeName, fieldName);
                 yield break;
             }
 
@@ -96,10 +82,47 @@ namespace BUTR.Harmony.Analyzer.Utils
 
             if (!fieldTypeName.Equals(fieldDefinitionTypeWithoutArity, StringComparison.Ordinal))
             {
-                yield return ReportWrongType(context.Operation, objectTypeName, fieldTypeName, fieldDefinitionType);
+                yield return RuleIdentifiers.ReportWrongType(context.Operation, objectTypeName, fieldTypeName, fieldDefinitionType);
                 yield break;
             }
         }
+
+        private static IEnumerable<Diagnostic> FindInRoslynMetadata(OperationAnalysisContext context, ITypeSymbol objectType, ITypeSymbol fieldType, string fieldName)
+        {
+            var objectTypeName = objectType.ToDisplayString(ReflectionUtils.Style);
+
+            //var fieldType = fieldTypeAssembly.GetTypeByMetadataName(fieldTypeName);
+            //if (fieldType is null)
+            //{
+            //    yield return ReportType(operation, fieldTypeName);
+            //    yield break;
+            //}
+
+            while (true)
+            {
+                var foundMembers = objectType.GetMembers(fieldName);
+                foreach (var member in foundMembers)
+                {
+                    if (member is not IFieldSymbol)
+                    {
+                        yield return RuleIdentifiers.ReportMember(context.Operation, objectTypeName, fieldName);
+                    }
+                    yield break;
+                }
+
+                if (false && objectType.BaseType is { } baseType)
+                {
+                    objectType = baseType;
+                    continue;
+                }
+
+                break;
+            }
+
+            // We haven't found the member in the exact type or base classes. Report that.
+            yield return RuleIdentifiers.ReportMember(context.Operation, objectTypeName, fieldName);
+        }
+
 
         private static string RemoveArity(string str)
         {
@@ -129,42 +152,6 @@ namespace BUTR.Harmony.Analyzer.Utils
             pt2.CopyTo(span.Slice(pt1.Length));
 
             return new string(buffer);
-        }
-
-        private static IEnumerable<Diagnostic> FindInRoslynMetadata(OperationAnalysisContext context, ITypeSymbol objectType, ITypeSymbol fieldType, string fieldName)
-        {
-            var objectTypeName = objectType.ToDisplayString(ReflectionUtils.Style);
-
-            //var fieldType = fieldTypeAssembly.GetTypeByMetadataName(fieldTypeName);
-            //if (fieldType is null)
-            //{
-            //    yield return ReportType(operation, fieldTypeName);
-            //    yield break;
-            //}
-
-            while (true)
-            {
-                var foundMembers = objectType.GetMembers(fieldName);
-                foreach (var member in foundMembers)
-                {
-                    if (member is not IFieldSymbol)
-                    {
-                        yield return ReportMember(context.Operation, objectTypeName, fieldName);
-                    }
-                    yield break;
-                }
-
-                if (false && objectType.BaseType is { } baseType)
-                {
-                    objectType = baseType;
-                    continue;
-                }
-
-                break;
-            }
-
-            // We haven't found the member in the exact type or base classes. Report that.
-            yield return ReportMember(context.Operation, objectTypeName, fieldName);
         }
     }
 }

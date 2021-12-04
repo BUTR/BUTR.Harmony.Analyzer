@@ -15,12 +15,12 @@ namespace BUTR.Harmony.Analyzer.Analyzers
     public class AccessToolsAnalyzer : DiagnosticAnalyzer
     {
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => ImmutableArray.Create(
-            MemberUtils.MemberRule,
-            MemberUtils.AssemblyRule,
-            MemberUtils.TypeRule,
-            MemberUtils.PropertyGetterRule,
-            MemberUtils.PropertySetterRule,
-            FieldRefAccessUtils.WrongTypeRule
+            RuleIdentifiers.MemberRule,
+            RuleIdentifiers.AssemblyRule,
+            RuleIdentifiers.TypeRule,
+            RuleIdentifiers.PropertyGetterRule,
+            RuleIdentifiers.PropertySetterRule,
+            RuleIdentifiers.WrongTypeRule
         );
 
         public override void Initialize(AnalysisContext context)
@@ -130,8 +130,8 @@ namespace BUTR.Harmony.Analyzer.Analyzers
                 var fieldType = operation.TargetMethod.TypeArguments[1];
 
                 var fieldName = ReflectionUtils.GetString(operation.SemanticModel, invocation.ArgumentList.Arguments[0], context.CancellationToken);
-
-                FieldRefAccessUtils.FindAndReportForFieldRefAccess(context, objectType, fieldType, fieldName);
+                if (fieldName is not null)
+                    FieldRefAccessUtils.FindAndReportForFieldRefAccess(context, objectType, fieldType, fieldName);
             }
 
             if (operation.TargetMethod.Parameters.Length == 2 && string.Equals(operation.TargetMethod.Parameters[1].Type.Name, nameof(String), StringComparison.OrdinalIgnoreCase))
@@ -140,8 +140,8 @@ namespace BUTR.Harmony.Analyzer.Analyzers
                 var fieldType = operation.TargetMethod.TypeArguments[1];
 
                 var fieldName = ReflectionUtils.GetString(operation.SemanticModel, invocation.ArgumentList.Arguments[0], context.CancellationToken);
-
-                FieldRefAccessUtils.FindAndReportForFieldRefAccess(context, objectType, fieldType, fieldName);
+                if (fieldName is not null)
+                    FieldRefAccessUtils.FindAndReportForFieldRefAccess(context, objectType, fieldType, fieldName);
             }
         }
 
@@ -155,8 +155,8 @@ namespace BUTR.Harmony.Analyzer.Analyzers
                 var fieldType = operation.TargetMethod.TypeArguments[1];
 
                 var fieldName = ReflectionUtils.GetString(operation.SemanticModel, invocation.ArgumentList.Arguments[0], context.CancellationToken);
-
-                FieldRefAccessUtils.FindAndReportForFieldRefAccess(context, objectType, fieldType, fieldName);
+                if (fieldName is not null)
+                    FieldRefAccessUtils.FindAndReportForFieldRefAccess(context, objectType, fieldType, fieldName);
             }
         }
     }

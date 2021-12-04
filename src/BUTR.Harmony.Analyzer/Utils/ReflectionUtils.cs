@@ -83,27 +83,10 @@ namespace BUTR.Harmony.Analyzer.Utils
             return null;
         }
 
-        public static TypeReference? FindTypeReference(MetadataReader metadata, string fullTypeName)
-        {
-            foreach (var typeReferencesHandle in metadata.TypeReferences)
-            {
-                var typeReferences = metadata.GetTypeReference(typeReferencesHandle);
-                var typeRefNamespace = metadata.GetString(typeReferences.Namespace);
-                var typeRefName = metadata.GetString(typeReferences.Name);
-                var typeRefFullName = typeRefNamespace + "." + typeRefName;
-                if (string.Equals(typeRefFullName, fullTypeName, StringComparison.Ordinal))
-                {
-                    return typeReferences;
-                }
-            }
-            return null;
-        }
-
         public static FieldDefinition? FindFieldDefinition(OperationAnalysisContext context, MetadataReader metadata, TypeDefinition typeDefinition, bool checkBase, string fieldName)
         {
             while (true)
             {
-                var name = metadata.GetString(typeDefinition.Name);
                 foreach (var fieldDefinitionHandle in typeDefinition.GetFields())
                 {
                     var fieldDefinition = metadata.GetFieldDefinition(fieldDefinitionHandle);
