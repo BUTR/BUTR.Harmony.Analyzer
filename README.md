@@ -35,6 +35,10 @@ This drastically reduces runtime errors when using Harmony.
 
 Also, when speaking in long-term maintenance of mods, if the game's internal API changes and a type member will be renamed or it will be changed to another type (e.g. field to a property), the analyzer will highlight that.  
 
+<p align="center">
+  <img src="https://media.discordapp.net/attachments/422092475163869201/916767149815631902/unknown.png" width="800" />
+</p>
+
 ```csharp
 // The analyzer works only when full data is provided for the method in compile-time
 // so the following methods will work:
