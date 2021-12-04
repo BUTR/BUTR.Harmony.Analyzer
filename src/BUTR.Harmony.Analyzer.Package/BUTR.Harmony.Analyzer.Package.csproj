@@ -13,7 +13,6 @@
 
   <PropertyGroup>
     <PackageId>BUTR.Harmony.Analyzer</PackageId>
-    <PackageVersion>1.0.0.25</PackageVersion>
     <Authors>BUTR</Authors>
     <Owners>BUTR</Owners>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
