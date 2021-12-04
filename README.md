@@ -26,3 +26,38 @@
     <img src="https://img.shields.io/nuget/v/BUTR.Harmony.Analyzer.svg?label=NuGet%20BUTR.Harmony.Analyzer&colorB=blue" />
   </a>
 </p>
+
+A Roslyn analyzer for [`Harmony`](https://github.com/pardeike/Harmony) which ensures that there are no typos when using the AccessTools* methods.  
+
+For example, if the user wants to access `_privateField` from some class/struct, but typed instead `_privateFld`, the analyzer will highlight that. It leverages the [`System.Reflection.Metadata`](https://www.nuget.org/packages/System.Reflection.Metadata/) package for fast analysys or public and non-public members of types.  
+
+This drastically reduces runtime errors when using Harmony.  
+
+Also, when speaking in long-term maintenance of mods, if the game's internal API changes and a type member will be renamed or it will be changed to another type (e.g. field to a property), the analyzer will highlight that.  
+
+<p align="center">
+  <img src="https://media.discordapp.net/attachments/422092475163869201/916767149815631902/unknown.png" width="800" />
+</p>
+
+```csharp
+// The analyzer works only when full data is provided for the method in compile-time
+// so the following methods will work:
+AccessTools.Method(typeof(Class), "MemberName");
+AccessTools.Method("System.Class:MemberName");
+
+// But this won't be supported, because the information will be available only at runtime
+Type type = ExternalMethod();
+AccessTools.Method(type, "MemberName");
+```
+
+## Supported API
+Supports `AccessTools` classes from [`Harmony`](https://github.com/pardeike/Harmony), [`HarmonyX`](https://github.com/BepInEx/HarmonyX) and [`Harmony.Extensions`](https://github.com/BUTR/Harmony.Extensions).  
+As long as the class starts with `AccessTools`, it will be supported.  
+The following API's are supported:  
+* Field/DeclaredField
+* Property/DeclaredProperty
+* Method/DeclaredMethod
+* PropertyGetter/DeclaredPropertyGetter
+* PropertySetter/DeclaredPropertySetter
+* StaticFieldRefAccess
+* StructFieldRefAccess
