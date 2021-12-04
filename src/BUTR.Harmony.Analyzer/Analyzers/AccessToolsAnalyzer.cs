@@ -1,23 +1,27 @@
 ﻿using BUTR.Harmony.Analyzer.Utils;
 
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.Operations;
 
 using System;
-using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
-using System.Threading;
 
 namespace BUTR.Harmony.Analyzer.Analyzers
 {
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
     public class AccessToolsAnalyzer : DiagnosticAnalyzer
     {
-        public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => ImmutableArray.Create(MemberParser.MemberRule, MemberParser.AssemblyRule, MemberParser.TypeRule);
+        public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => ImmutableArray.Create(
+            MemberUtils.MemberRule,
+            MemberUtils.AssemblyRule,
+            MemberUtils.TypeRule,
+            MemberUtils.PropertyGetterRule,
+            MemberUtils.PropertySetterRule,
+            FieldRefAccessUtils.WrongTypeRule
+        );
 
         public override void Initialize(AnalysisContext context)
         {
@@ -41,8 +45,9 @@ namespace BUTR.Harmony.Analyzer.Analyzers
 
             if (!operation.TargetMethod.ContainingType.Name.StartsWith("AccessTools", StringComparison.Ordinal)) return;
 
-            var flags = MemberFlags.None;
             var methodName = operation.TargetMethod.Name.AsSpan();
+
+            var flags = MemberFlags.None;
 
             if (methodName.StartsWith("Declared".AsSpan()))
             {
@@ -50,85 +55,109 @@ namespace BUTR.Harmony.Analyzer.Analyzers
                 methodName = methodName.Slice(8);
             }
 
-            if (methodName.Equals("Property".AsSpan(), StringComparison.Ordinal))
+            if (methodName.StartsWith("Property".AsSpan(), StringComparison.Ordinal))
             {
                 flags |= MemberFlags.Property;
-                Analyze(context, operation, invocation, flags);
+                methodName = methodName.Slice(8);
+
+                if (!methodName.IsEmpty)
+                {
+                    if (methodName.Equals("Setter".AsSpan(), StringComparison.Ordinal))
+                        flags |= MemberFlags.Setter;
+                    else if (methodName.Equals("Getter".AsSpan(), StringComparison.Ordinal))
+                        flags |= MemberFlags.Getter;
+                }
+
+                AnalyzeMembers(context, operation, invocation, flags);
             }
-            if (methodName.Equals("Field".AsSpan(), StringComparison.Ordinal))
+            else if (methodName.Equals("Field".AsSpan(), StringComparison.Ordinal))
             {
                 flags |= MemberFlags.Field;
-                Analyze(context, operation, invocation, flags);
+                AnalyzeMembers(context, operation, invocation, flags);
             }
-            if (methodName.Equals("Method".AsSpan(), StringComparison.Ordinal))
+            else if (methodName.Equals("Method".AsSpan(), StringComparison.Ordinal))
             {
                 flags |= MemberFlags.Method;
-                Analyze(context, operation, invocation, flags);
+                AnalyzeMembers(context, operation, invocation, flags);
+            }
+            else if (methodName.Equals("StructFieldRefAccess".AsSpan(), StringComparison.Ordinal))
+            {
+                AnalyzeStructFieldRefAccess(context, operation, invocation);
+            }
+            else if (methodName.Equals("StaticFieldRefAccess".AsSpan(), StringComparison.Ordinal))
+            {
+                AnalyzeStaticFieldRefAccess(context, operation, invocation);
             }
         }
 
-        private static void Analyze(OperationAnalysisContext context, IInvocationOperation operation, InvocationExpressionSyntax invocation, MemberFlags memberFlags)
+        private static void AnalyzeMembers(OperationAnalysisContext context, IInvocationOperation operation, InvocationExpressionSyntax invocation, MemberFlags memberFlags)
         {
             if (string.Equals(operation.TargetMethod.Parameters.FirstOrDefault()?.Type.Name, nameof(Type), StringComparison.OrdinalIgnoreCase))
             {
                 if (invocation.ArgumentList.Arguments.Count < 2) return;
 
-                if (GetString(operation.SemanticModel, invocation.ArgumentList.Arguments[1], context.CancellationToken) is not { } methodName) return;
-                var typeInfos = GetTypeInfos(operation.SemanticModel, invocation.ArgumentList.Arguments[0], context.CancellationToken);
+                if (ReflectionUtils.GetString(operation.SemanticModel, invocation.ArgumentList.Arguments[1], context.CancellationToken) is not { } methodName) return;
+                var typeInfos = ReflectionUtils.GetTypeInfos(operation.SemanticModel, invocation.ArgumentList.Arguments[0], context.CancellationToken);
                 if (typeInfos.IsEmpty) return;
 
                 if (typeInfos.Length > 1)
                 {
-                    MemberParser.FindAndReport(context, typeInfos, memberFlags, methodName);
+                    MemberUtils.FindAndReportForMembers(context, typeInfos, memberFlags, methodName);
                 }
                 else
                 {
-                    MemberParser.FindAndReport(context, typeInfos[0], memberFlags, methodName);
+                    MemberUtils.FindAndReportForMember(context, typeInfos[0], memberFlags, methodName);
                 }
             }
             else if (string.Equals(operation.TargetMethod.Parameters.FirstOrDefault()?.Type.Name, nameof(String), StringComparison.OrdinalIgnoreCase))
             {
                 if (invocation.ArgumentList.Arguments.Count < 1) return;
 
-                var typeSemicolonMember = GetString(operation.SemanticModel, invocation.ArgumentList.Arguments[0], context.CancellationToken);
+                var typeSemicolonMember = ReflectionUtils.GetString(operation.SemanticModel, invocation.ArgumentList.Arguments[0], context.CancellationToken);
                 if (typeSemicolonMember is null) return;
 
-                MemberParser.FindAndReport(context, typeSemicolonMember, memberFlags);
+                MemberUtils.FindAndReportForMember(context, typeSemicolonMember, memberFlags);
             }
         }
 
-        private static ImmutableArray<ITypeSymbol> GetTypeInfos(SemanticModel? semanticModel, ArgumentSyntax argument, CancellationToken ct)
+        private static void AnalyzeStructFieldRefAccess(OperationAnalysisContext context, IInvocationOperation operation, InvocationExpressionSyntax invocation)
         {
-            if (semanticModel is null) return ImmutableArray<ITypeSymbol>.Empty;
+            if (operation.TargetMethod.Arity != 2) return;
 
-            if (argument.Expression is TypeOfExpressionSyntax expression)
+            if (operation.TargetMethod.Parameters.Length == 1 && string.Equals(operation.TargetMethod.Parameters[0].Type.Name, nameof(String), StringComparison.OrdinalIgnoreCase))
             {
-                var type = semanticModel.GetTypeInfo(expression.Type, ct);
-                if (type.Type.TypeKind == TypeKind.TypeParameter && type.Type is ITypeParameterSymbol typeParameterSymbol)
-                {
-                    return typeParameterSymbol.ConstraintTypes;
-                }
-                return ImmutableArray.Create(type.Type);
+                var objectType = operation.TargetMethod.TypeArguments[0];
+                var fieldType = operation.TargetMethod.TypeArguments[1];
+
+                var fieldName = ReflectionUtils.GetString(operation.SemanticModel, invocation.ArgumentList.Arguments[0], context.CancellationToken);
+
+                FieldRefAccessUtils.FindAndReportForFieldRefAccess(context, objectType, fieldType, fieldName);
             }
 
-            return ImmutableArray<ITypeSymbol>.Empty;
+            if (operation.TargetMethod.Parameters.Length == 2 && string.Equals(operation.TargetMethod.Parameters[1].Type.Name, nameof(String), StringComparison.OrdinalIgnoreCase))
+            {
+                var objectType = operation.TargetMethod.TypeArguments[0];
+                var fieldType = operation.TargetMethod.TypeArguments[1];
+
+                var fieldName = ReflectionUtils.GetString(operation.SemanticModel, invocation.ArgumentList.Arguments[0], context.CancellationToken);
+
+                FieldRefAccessUtils.FindAndReportForFieldRefAccess(context, objectType, fieldType, fieldName);
+            }
         }
-        private static string? GetString(SemanticModel? semanticModel, ArgumentSyntax argument, CancellationToken ct)
+
+        private static void AnalyzeStaticFieldRefAccess(OperationAnalysisContext context, IInvocationOperation operation, InvocationExpressionSyntax invocation)
         {
-            if (semanticModel is null) return null;
+            if (operation.TargetMethod.Arity != 2) return;
 
-            if (argument.Expression is LiteralExpressionSyntax literal)
-                return literal.Token.ValueText;
+            if (operation.TargetMethod.Parameters.Length == 1 && string.Equals(operation.TargetMethod.Parameters[0].Type.Name, nameof(String), StringComparison.OrdinalIgnoreCase))
+            {
+                var objectType = operation.TargetMethod.TypeArguments[0];
+                var fieldType = operation.TargetMethod.TypeArguments[1];
 
-            var constantValue = semanticModel.GetConstantValue(argument.Expression, ct);
-            if (constantValue.HasValue && constantValue.Value is string constString)
-                return constString;
+                var fieldName = ReflectionUtils.GetString(operation.SemanticModel, invocation.ArgumentList.Arguments[0], context.CancellationToken);
 
-            INamedTypeSymbol? StringType() => semanticModel.Compilation.GetTypeByMetadataName("System.String");
-            if (semanticModel.GetSymbolInfo(argument.Expression, ct).Symbol is IFieldSymbol { Name: "Empty" } field && SymbolEqualityComparer.Default.Equals(field.Type, StringType()))
-                return "";
-
-            return null;
+                FieldRefAccessUtils.FindAndReportForFieldRefAccess(context, objectType, fieldType, fieldName);
+            }
         }
     }
 }

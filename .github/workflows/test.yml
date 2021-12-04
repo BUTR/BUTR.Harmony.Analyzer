@@ -1,0 +1,105 @@
+name: Test
+
+on:
+  push:
+    branches: [ master ]
+    paths:
+      - '.github/workflows/test.yml'
+      - 'src/**'
+      - 'build/**'
+      - 'tests/**'
+  pull_request:
+    branches: [ master ]
+    # will be triggered when undrafting or requesting review
+    types: [review_requested, ready_for_review]
+    paths:
+      - '.github/workflows/test.yml'
+      - 'src/**'
+      - 'build/**'
+      - 'tests/**'
+
+env:
+  # Disable the .NET logo in the console output.
+  DOTNET_NOLOGO: true
+  # Disable the .NET first time experience to skip caching NuGet packages and speed up the build.
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+  # Disable sending .NET CLI telemetry to Microsoft.
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+  # NuGet won't extract the XML files
+  NUGET_XMLDOC_MODE: skip
+  TEST_FILTERS: '+[BUTR.Harmony.Analyzer*]* -[BUTR.Harmony.Analyzer*.Tests]* -[*]System.Diagnostics.CodeAnalysis*'
+
+jobs:
+  test:
+    name: Test
+    runs-on: windows-latest
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v2
+
+    - name: Setup .NET Core 6.0.x
+      uses: actions/setup-dotnet@master
+      with:
+        dotnet-version: 6.0.x
+        
+    - name: Setup BUTR GPR
+      uses: actions/setup-dotnet@master
+      with:
+        source-url: https://nuget.pkg.github.com/BUTR/index.json
+      env:
+        NUGET_AUTH_TOKEN: ${{secrets.GITHUB_TOKEN}}
+
+    - name: Ensure NuGet Source
+      uses: fabriciomurta/ensure-nuget-source@v1
+      with:
+        name: 'nuget.org'
+        url: 'https://api.nuget.org/v3/index.json'
+
+    - name: Download opencover.4.7.922
+      uses: i3h/download-release-asset@v1
+      with:
+        owner: OpenCover
+        repo: opencover
+        tag: 4.7.922
+        file: opencover.4.7.922.zip
+
+    - name: Extract opencover.4.7.922
+      uses: DuckSoft/extract-7z-action@v1.0
+      with:
+        pathSource: opencover.4.7.922.zip
+        pathTarget: opencover
+
+    - name: Build
+      run: >-
+        dotnet build src/BUTR.Harmony.Analyzer.Test/BUTR.Harmony.Analyzer.Test.csproj --configuration Debug;
+        dotnet build src/BUTR.Harmony.Analyzer.Test/BUTR.Harmony.Analyzer.Test.csproj --configuration Release;
+      shell: pwsh
+
+    - name: Tests with Coverage
+      run: >-
+          opencover/OpenCover.Console.exe -register -target:"dotnet.exe" -targetargs:"test src/BUTR.Harmony.Analyzer.Test/BUTR.Harmony.Analyzer.Test.csproj --no-build --configuration Debug --no-build" -filter:"${{env.TEST_FILTERS}}" -output:coverage_debug.xml -mergebyhash;
+          opencover/OpenCover.Console.exe -register -target:"dotnet.exe" -targetargs:"test src/BUTR.Harmony.Analyzer.Test/BUTR.Harmony.Analyzer.Test.csproj --no-build --configuration Release --no-build" -filter:"${{env.TEST_FILTERS}}" -output:coverage_release.xml -mergebyhash;
+      shell: pwsh
+
+    - name: ReportGenerator
+      uses: danielpalme/ReportGenerator-GitHub-Action@5.0.0
+      with:
+        reports: 'coverage_debug.xml;coverage_release.xml'
+        targetdir: 'coveragereport'
+        reporttypes: 'HtmlInline;Cobertura'
+        sourcedirs: './'
+        tag: '${{ github.run_number }}_${{ github.run_id }}' # Optional tag or build version.
+
+    - name: Upload ReportGenerator to GitHub
+      uses: actions/upload-artifact@v2.2.4
+      with:
+        name: coverage-report
+        path: coveragereport
+
+    - name: Upload ReportGenerator to CodeCov
+      uses: codecov/codecov-action@v2.1.0
+      with:
+        token: ${{secrets.CODECOV_TOKEN}}
+        file: coveragereport/Cobertura.xml
+        fail_ci_if_error: true
+ 
