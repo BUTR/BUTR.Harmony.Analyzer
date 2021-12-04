@@ -1,6 +1,7 @@
-﻿using System;
+﻿using Microsoft.CodeAnalysis;
+
+using System;
 using System.Collections.Generic;
-using Microsoft.CodeAnalysis;
 
 namespace TestHelper
 {
