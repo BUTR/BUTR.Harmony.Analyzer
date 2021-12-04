@@ -8,9 +8,10 @@ namespace BUTR.Harmony.Analyzer.Utils
 {
     /// <summary>
     /// Helper class for converting metadata tokens into their textual representation.
+    /// Taken from https://github.com/dotnet/runtime/blob/f179b7634370fc9181610624cc095370ec53e072/src/coreclr/tools/aot/ILCompiler.Reflection.ReadyToRun/ReadyToRunSignature.cs#L70
     /// </summary>
     [ExcludeFromCodeCoverage]
-    public class MetadataNameFormatter : DisassemblingTypeProvider
+    internal class MetadataNameFormatter : DisassemblingTypeProvider
     {
         private readonly MetadataReader _metadataReader;
 
