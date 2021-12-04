@@ -30,32 +30,17 @@ namespace BUTR.Harmony.Analyzer.Utils
         {
             try
             {
-                switch (handle.Kind)
+                return handle.Kind switch
                 {
-                    case HandleKind.MemberReference:
-                        return EmitMemberReferenceName((MemberReferenceHandle) handle, owningTypeOverride, signaturePrefix);
-
-                    case HandleKind.MethodSpecification:
-                        return EmitMethodSpecificationName((MethodSpecificationHandle) handle, owningTypeOverride, signaturePrefix);
-
-                    case HandleKind.MethodDefinition:
-                        return EmitMethodDefinitionName((MethodDefinitionHandle) handle, owningTypeOverride, signaturePrefix);
-
-                    case HandleKind.TypeReference:
-                        return EmitTypeReferenceName((TypeReferenceHandle) handle, namespaceQualified, signaturePrefix);
-
-                    case HandleKind.TypeSpecification:
-                        return EmitTypeSpecificationName((TypeSpecificationHandle) handle, namespaceQualified, signaturePrefix);
-
-                    case HandleKind.TypeDefinition:
-                        return EmitTypeDefinitionName((TypeDefinitionHandle) handle, namespaceQualified, signaturePrefix);
-
-                    case HandleKind.FieldDefinition:
-                        return EmitFieldDefinitionName((FieldDefinitionHandle) handle, namespaceQualified, owningTypeOverride, signaturePrefix);
-
-                    default:
-                        throw new NotImplementedException();
-                }
+                    HandleKind.MemberReference => EmitMemberReferenceName((MemberReferenceHandle) handle, owningTypeOverride, signaturePrefix),
+                    HandleKind.MethodSpecification => EmitMethodSpecificationName((MethodSpecificationHandle) handle, owningTypeOverride, signaturePrefix),
+                    HandleKind.MethodDefinition => EmitMethodDefinitionName((MethodDefinitionHandle) handle, owningTypeOverride, signaturePrefix),
+                    HandleKind.TypeReference => EmitTypeReferenceName((TypeReferenceHandle) handle, namespaceQualified, signaturePrefix),
+                    HandleKind.TypeSpecification => EmitTypeSpecificationName((TypeSpecificationHandle) handle, namespaceQualified, signaturePrefix),
+                    HandleKind.TypeDefinition => EmitTypeDefinitionName((TypeDefinitionHandle) handle, namespaceQualified, signaturePrefix),
+                    HandleKind.FieldDefinition => EmitFieldDefinitionName((FieldDefinitionHandle) handle, namespaceQualified, owningTypeOverride, signaturePrefix),
+                    _ => throw new NotImplementedException(),
+                };
             }
             catch (Exception ex)
             {
@@ -69,7 +54,7 @@ namespace BUTR.Harmony.Analyzer.Utils
             var tableRowCount = _metadataReader.GetTableRowCount(tableIndex);
             if (rowid <= 0 || rowid > tableRowCount)
             {
-                throw new NotImplementedException($"Invalid handle {MetadataTokens.GetToken(handle):X8} in table {tableIndex.ToString()} ({tableRowCount} rows)");
+                throw new NotImplementedException($"Invalid handle {MetadataTokens.GetToken(handle):X8} in table {tableIndex} ({tableRowCount} rows)");
             }
         }
 
