@@ -41,7 +41,7 @@ jobs:
       uses: actions/setup-dotnet@master
       with:
         dotnet-version: 6.0.x
-        
+
     - name: Setup BUTR GPR
       uses: actions/setup-dotnet@master
       with:
@@ -102,4 +102,3 @@ jobs:
         token: ${{secrets.CODECOV_TOKEN}}
         file: coveragereport/Cobertura.xml
         fail_ci_if_error: true
- 

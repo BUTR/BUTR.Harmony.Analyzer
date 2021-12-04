@@ -16,9 +16,8 @@ namespace BUTR.Harmony.Analyzer.Utils
         public DisassemblingGenericContext(string[]? typeParameters, string[]? methodParameters)
         {
             MethodParameters = methodParameters ?? Array.Empty<string>();
-            TypeParameters = typeParameters ?? Array.Empty<string>(); ;
+            TypeParameters = typeParameters ?? Array.Empty<string>();
         }
-
     }
 
     [ExcludeFromCodeCoverage]
