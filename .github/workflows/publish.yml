@@ -3,7 +3,7 @@ name: Publish
 on:
   push:
     branches:
-      - master
+      - release
     paths:
       - '.github/workflows/publish.yml'
       - 'src/**'

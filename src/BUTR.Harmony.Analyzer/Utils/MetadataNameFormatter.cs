@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection.Metadata;
 using System.Reflection.Metadata.Ecma335;
 using System.Text;
@@ -8,6 +9,7 @@ namespace BUTR.Harmony.Analyzer.Utils
     /// <summary>
     /// Helper class for converting metadata tokens into their textual representation.
     /// </summary>
+    [ExcludeFromCodeCoverage]
     public class MetadataNameFormatter : DisassemblingTypeProvider
     {
         private readonly MetadataReader _metadataReader;

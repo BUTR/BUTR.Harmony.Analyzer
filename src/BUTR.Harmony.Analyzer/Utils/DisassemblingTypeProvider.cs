@@ -1,12 +1,12 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection.Metadata;
 using System.Text;
 
 namespace BUTR.Harmony.Analyzer.Utils
 {
+    [ExcludeFromCodeCoverage]
     public class DisassemblingGenericContext
     {
         public string[] MethodParameters { get; }
@@ -20,6 +20,7 @@ namespace BUTR.Harmony.Analyzer.Utils
 
     }
 
+    [ExcludeFromCodeCoverage]
     public abstract class StringTypeProviderBase<TGenericContext> : ISignatureTypeProvider<string, TGenericContext>
     {
         public virtual string GetPrimitiveType(PrimitiveTypeCode typeCode) => typeCode switch
@@ -165,6 +166,7 @@ namespace BUTR.Harmony.Analyzer.Utils
 
     // Test implementation of ISignatureTypeProvider<TType, TGenericContext> that uses strings in ilasm syntax as TType.
     // A real provider in any sort of perf constraints would not want to allocate strings freely like this, but it keeps test code simple.
+    [ExcludeFromCodeCoverage]
     public class DisassemblingTypeProvider : StringTypeProviderBase<DisassemblingGenericContext>
     {
         public override string GetGenericMethodParameter(DisassemblingGenericContext genericContext, int index)
