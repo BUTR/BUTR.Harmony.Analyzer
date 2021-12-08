@@ -1,4 +1,6 @@
-﻿using BUTR.Harmony.Analyzer.Utils;
+﻿using BUTR.Harmony.Analyzer.Analyzers;
+using BUTR.Harmony.Analyzer.Data;
+using BUTR.Harmony.Analyzer.Utils;
 
 using Microsoft.CodeAnalysis;
 
@@ -14,6 +16,8 @@ namespace BUTR.Harmony.Analyzer
         public const string MissingGetter = "BHA0004";
         public const string MissingSetter = "BHA0005";
         public const string WrongType = "BHA0006";
+        public const string MissingConstructor = "BHA0007";
+        public const string MissingStaticConstructor = "BHA0008";
 
         public static string GetHelpUri(string idenfifier) => 
             string.Format(CultureInfo.InvariantCulture, "https://github.com/BUTR/BUTR.Harmony.Analyzer/blob/master/docs/Rules/{0}.md", idenfifier);
@@ -51,7 +55,7 @@ namespace BUTR.Harmony.Analyzer
         internal static readonly DiagnosticDescriptor PropertyGetterRule = new(
             MissingGetter,
             title: "Property does not have a get method",
-            messageFormat: "Member '{0}' does not have a get method",
+            messageFormat: "Property '{0}' does not have a get method",
             RuleCategories.Usage,
             DiagnosticSeverity.Warning,
             isEnabledByDefault: true,
@@ -61,7 +65,7 @@ namespace BUTR.Harmony.Analyzer
         internal static readonly DiagnosticDescriptor PropertySetterRule = new(
             MissingSetter,
             title: "Property does not have a set method",
-            messageFormat: "Member '{0}'does not have a set method",
+            messageFormat: "Property '{0}'does not have a set method",
             RuleCategories.Usage,
             DiagnosticSeverity.Warning,
             isEnabledByDefault: true,
@@ -78,22 +82,50 @@ namespace BUTR.Harmony.Analyzer
             description: "",
             helpLinkUri: GetHelpUri(WrongType));
 
-        internal static Diagnostic ReportAssembly(IOperation operation, string assemblyName, string typeName) =>
-            DiagnosticUtils.CreateDiagnostic(AssemblyRule, operation, assemblyName, typeName);
 
-        internal static Diagnostic ReportType(IOperation operation, string typeName) =>
-            DiagnosticUtils.CreateDiagnostic(TypeRule, operation, typeName);
+        internal static readonly DiagnosticDescriptor ConstructorRule = new(
+            MissingConstructor,
+            title: "Type does not have the constructor",
+            messageFormat: "Type '{0}' does not have the constructor",
+            RuleCategories.Usage,
+            DiagnosticSeverity.Warning,
+            isEnabledByDefault: true,
+            description: "",
+            helpLinkUri: GetHelpUri(MissingConstructor));
 
-        internal static Diagnostic ReportMember(IOperation operation, string typeName, string memberName) =>
-            DiagnosticUtils.CreateDiagnostic(MemberRule, operation, memberName, typeName);
 
-        internal static Diagnostic ReportMissingGetter(IOperation operation, string propertyName) =>
-            DiagnosticUtils.CreateDiagnostic(PropertyGetterRule, operation, propertyName);
+        internal static readonly DiagnosticDescriptor StaticConstructorRule = new(
+            MissingStaticConstructor,
+            title: "Type does not have the static constructor",
+            messageFormat: "Type '{0}' does not have the static constructor",
+            RuleCategories.Usage,
+            DiagnosticSeverity.Warning,
+            isEnabledByDefault: true,
+            description: "",
+            helpLinkUri: GetHelpUri(MissingStaticConstructor));
 
-        internal static Diagnostic ReportMissingSetter(IOperation operation, string propertyName) =>
-            DiagnosticUtils.CreateDiagnostic(PropertySetterRule, operation, propertyName);
+        internal static Diagnostic ReportAssembly(GenericContext context, string assemblyName, string typeName) =>
+            DiagnosticUtils.CreateDiagnostic(AssemblyRule, context, assemblyName, typeName);
 
-        internal static Diagnostic ReportWrongType(IOperation operation, string holderType, string expectedType, string actualType) =>
-            DiagnosticUtils.CreateDiagnostic(WrongTypeRule, operation, holderType, expectedType, actualType);
+        internal static Diagnostic ReportType(GenericContext context, string typeName) =>
+            DiagnosticUtils.CreateDiagnostic(TypeRule, context, typeName);
+
+        internal static Diagnostic ReportMember(GenericContext context, string typeName, string memberName) =>
+            DiagnosticUtils.CreateDiagnostic(MemberRule, context, memberName, typeName);
+
+        internal static Diagnostic ReportMissingGetter(GenericContext context, string propertyName) =>
+            DiagnosticUtils.CreateDiagnostic(PropertyGetterRule, context, propertyName);
+
+        internal static Diagnostic ReportMissingSetter(GenericContext context, string propertyName) =>
+            DiagnosticUtils.CreateDiagnostic(PropertySetterRule, context, propertyName);
+
+        internal static Diagnostic ReportWrongType(GenericContext context, string holderType, string expectedType, string actualType) =>
+            DiagnosticUtils.CreateDiagnostic(WrongTypeRule, context, holderType, expectedType, actualType);
+
+        internal static Diagnostic ReportMissingConstructor(GenericContext context, string typeName) =>
+            DiagnosticUtils.CreateDiagnostic(ConstructorRule, context, typeName);
+
+        internal static Diagnostic ReportMissingStaticConstructor(GenericContext context, string typeName) =>
+            DiagnosticUtils.CreateDiagnostic(StaticConstructorRule, context, typeName);
     }
 }

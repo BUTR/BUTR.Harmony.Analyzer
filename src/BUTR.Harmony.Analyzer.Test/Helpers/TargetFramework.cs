@@ -1,4 +1,5 @@
-﻿namespace TestHelper
+﻿#nullable disable
+namespace TestHelper
 {
     public enum TargetFramework
     {

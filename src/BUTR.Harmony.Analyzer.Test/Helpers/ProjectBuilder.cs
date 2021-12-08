@@ -1,4 +1,5 @@
-﻿using Microsoft.CodeAnalysis;
+﻿#nullable disable
+using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CodeFixes;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Diagnostics;
@@ -117,6 +118,7 @@ namespace TestHelper
             .AddNuGetReference("System.Runtime.CompilerServices.Unsafe", "4.7.1", "ref/netstandard2.0/");
 
         public ProjectBuilder AddSystemTextJson() => AddNuGetReference("System.Text.Json", "6.0.0", "lib/netstandard2.0/");
+        public ProjectBuilder AddSystemMemory() => AddNuGetReference("System.Memory", "4.5.4", "lib/netstandard2.0/");
 
         public ProjectBuilder WithOutputKind(OutputKind outputKind)
         {

@@ -1,10 +1,13 @@
-﻿using System;
+﻿using BUTR.Harmony.Analyzer.Data;
+
+using System;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection.Metadata;
 using System.Reflection.Metadata.Ecma335;
 using System.Text;
 
-namespace BUTR.Harmony.Analyzer.Utils
+namespace BUTR.Harmony.Analyzer.Services
 {
     /// <summary>
     /// Helper class for converting metadata tokens into their textual representation.
@@ -15,18 +18,18 @@ namespace BUTR.Harmony.Analyzer.Utils
     {
         private readonly MetadataReader _metadataReader;
 
-        public MetadataNameFormatter(MetadataReader metadataReader)
+        private MetadataNameFormatter(MetadataReader metadataReader)
         {
             _metadataReader = metadataReader;
         }
 
-        public static string FormatHandle(MetadataReader metadataReader, Handle handle, bool namespaceQualified = true, string? owningTypeOverride = null, string signaturePrefix = "")
+        public static SignatureType FormatHandle(MetadataReader metadataReader, Handle handle, bool namespaceQualified = true, SignatureType? owningTypeOverride = null, string signaturePrefix = "")
         {
             var formatter = new MetadataNameFormatter(metadataReader);
             return formatter.EmitHandleName(handle, namespaceQualified, owningTypeOverride, signaturePrefix);
         }
 
-        private string EmitHandleName(Handle handle, bool namespaceQualified, string? owningTypeOverride, string signaturePrefix = "")
+        private SignatureType EmitHandleName(Handle handle, bool namespaceQualified, SignatureType? owningTypeOverride, string signaturePrefix = "")
         {
             try
             {
@@ -44,7 +47,7 @@ namespace BUTR.Harmony.Analyzer.Utils
             }
             catch (Exception ex)
             {
-                return $"$$INVALID-{handle.Kind}-{MetadataTokens.GetRowNumber((EntityHandle) handle):X6}: {ex.Message}";
+                return SignatureType.FromString($"$$INVALID-{handle.Kind}-{MetadataTokens.GetRowNumber((EntityHandle) handle):X6}: {ex.Message}");
             }
         }
 
@@ -58,26 +61,26 @@ namespace BUTR.Harmony.Analyzer.Utils
             }
         }
 
-        private string EmitMethodSpecificationName(MethodSpecificationHandle methodSpecHandle, string? owningTypeOverride, string signaturePrefix)
+        private SignatureType EmitMethodSpecificationName(MethodSpecificationHandle methodSpecHandle, SignatureType? owningTypeOverride, string signaturePrefix)
         {
             ValidateHandle(methodSpecHandle, TableIndex.MethodSpec);
             var methodSpec = _metadataReader.GetMethodSpecification(methodSpecHandle);
-            var genericContext = new DisassemblingGenericContext(Array.Empty<string>(), Array.Empty<string>());
-            return EmitHandleName(methodSpec.Method, namespaceQualified: true, owningTypeOverride: owningTypeOverride, signaturePrefix: signaturePrefix)
-                + methodSpec.DecodeSignature(this, genericContext);
+            var type = EmitHandleName(methodSpec.Method, namespaceQualified: true, owningTypeOverride: owningTypeOverride, signaturePrefix: signaturePrefix);
+            var signature = methodSpec.DecodeSignature(this, DisassemblingGenericContext.Empty); // No idea
+            if (Debugger.IsAttached) Debugger.Break();
+            return type;
         }
 
-        private string EmitMemberReferenceName(MemberReferenceHandle memberRefHandle, string? owningTypeOverride, string signaturePrefix)
+        private SignatureType EmitMemberReferenceName(MemberReferenceHandle memberRefHandle, SignatureType? owningTypeOverride, string signaturePrefix)
         {
             ValidateHandle(memberRefHandle, TableIndex.MemberRef);
             var memberRef = _metadataReader.GetMemberReference(memberRefHandle);
             var builder = new StringBuilder();
-            var genericContext = new DisassemblingGenericContext(Array.Empty<string>(), Array.Empty<string>());
             switch (memberRef.GetKind())
             {
                 case MemberReferenceKind.Field:
                 {
-                    var fieldSig = memberRef.DecodeFieldSignature(this, genericContext);
+                    var fieldSig = memberRef.DecodeFieldSignature(this, DisassemblingGenericContext.Empty);
                     builder.Append(fieldSig);
                     builder.Append(" ");
                     builder.Append(EmitContainingTypeAndMemberName(memberRef, owningTypeOverride, signaturePrefix));
@@ -86,7 +89,7 @@ namespace BUTR.Harmony.Analyzer.Utils
 
                 case MemberReferenceKind.Method:
                 {
-                    var methodSig = memberRef.DecodeMethodSignature(this, genericContext);
+                    var methodSig = memberRef.DecodeMethodSignature(this, DisassemblingGenericContext.Empty);
                     builder.Append(methodSig.ReturnType);
                     builder.Append(" ");
                     builder.Append(EmitContainingTypeAndMemberName(memberRef, owningTypeOverride, signaturePrefix));
@@ -98,31 +101,27 @@ namespace BUTR.Harmony.Analyzer.Utils
                     throw new NotImplementedException(memberRef.GetKind().ToString());
             }
 
-            return builder.ToString();
+            return SignatureType.FromString(builder.ToString());
         }
 
-        private string EmitMethodDefinitionName(MethodDefinitionHandle methodDefinitionHandle, string? owningTypeOverride, string signaturePrefix)
+        private SignatureType EmitMethodDefinitionName(MethodDefinitionHandle methodDefinitionHandle, SignatureType? owningTypeOverride, string signaturePrefix)
         {
             ValidateHandle(methodDefinitionHandle, TableIndex.MethodDef);
             var methodDef = _metadataReader.GetMethodDefinition(methodDefinitionHandle);
-            var genericContext = new DisassemblingGenericContext(Array.Empty<string>(), Array.Empty<string>());
-            var methodSig = methodDef.DecodeSignature(this, genericContext);
+            var methodSig = methodDef.DecodeSignature(this, DisassemblingGenericContext.Empty);
             var builder = new StringBuilder();
             builder.Append(methodSig.ReturnType);
             builder.Append(" ");
-            if (owningTypeOverride == null)
-            {
-                owningTypeOverride = EmitHandleName(methodDef.GetDeclaringType(), namespaceQualified: true, owningTypeOverride: null);
-            }
+            owningTypeOverride ??= EmitHandleName(methodDef.GetDeclaringType(), namespaceQualified: true, owningTypeOverride: null);
             builder.Append(owningTypeOverride);
             builder.Append(".");
             builder.Append(signaturePrefix);
             builder.Append(EmitString(methodDef.Name));
             builder.Append(EmitMethodSignature(methodSig));
-            return builder.ToString();
+            return SignatureType.FromString(builder.ToString());
         }
 
-        private string EmitMethodSignature(MethodSignature<string> methodSignature)
+        private SignatureType EmitMethodSignature(MethodSignature<SignatureType> methodSignature)
         {
             var builder = new StringBuilder();
             if (methodSignature.GenericParameterCount != 0)
@@ -159,19 +158,17 @@ namespace BUTR.Harmony.Analyzer.Utils
                 builder.Append(paramType);
             }
             builder.Append(")");
-            return builder.ToString();
+            return SignatureType.FromString(builder.ToString());
         }
 
-        private string EmitContainingTypeAndMemberName(MemberReference memberRef, string? owningTypeOverride, string signaturePrefix)
+        private SignatureType EmitContainingTypeAndMemberName(MemberReference memberRef, SignatureType? owningTypeOverride, string signaturePrefix)
         {
-            if (owningTypeOverride == null)
-            {
-                owningTypeOverride = EmitHandleName(memberRef.Parent, namespaceQualified: true, owningTypeOverride: null);
-            }
-            return owningTypeOverride + "." + signaturePrefix + EmitString(memberRef.Name);
+            owningTypeOverride ??= EmitHandleName(memberRef.Parent, namespaceQualified: true, owningTypeOverride: null);
+            if (Debugger.IsAttached) Debugger.Break();
+            return owningTypeOverride with { Name = $"{owningTypeOverride.Name}.{signaturePrefix}{EmitString(memberRef.Name)}" }; // No idea what emits this
         }
 
-        private string EmitTypeReferenceName(TypeReferenceHandle typeRefHandle, bool namespaceQualified, string signaturePrefix)
+        private SignatureType EmitTypeReferenceName(TypeReferenceHandle typeRefHandle, bool namespaceQualified, string signaturePrefix)
         {
             ValidateHandle(typeRefHandle, TableIndex.TypeRef);
             var typeRef = _metadataReader.GetTypeReference(typeRefHandle);
@@ -180,7 +177,8 @@ namespace BUTR.Harmony.Analyzer.Utils
             if (typeRef.ResolutionScope.Kind != HandleKind.AssemblyReference)
             {
                 // Nested type - format enclosing type followed by the nested type
-                return EmitHandleName(typeRef.ResolutionScope, namespaceQualified, owningTypeOverride: null) + "+" + typeName;
+                var originalType = EmitHandleName(typeRef.ResolutionScope, namespaceQualified, owningTypeOverride: null);
+                return originalType with { IsNested = true, Name = $"{originalType.Name}+{typeName}" };
             }
             if (namespaceQualified)
             {
@@ -190,10 +188,10 @@ namespace BUTR.Harmony.Analyzer.Utils
                     output += ".";
                 }
             }
-            return output + signaturePrefix + typeName;
+            return SignatureType.FromString(output + signaturePrefix + typeName);
         }
 
-        private string EmitTypeDefinitionName(TypeDefinitionHandle typeDefHandle, bool namespaceQualified, string signaturePrefix)
+        private SignatureType EmitTypeDefinitionName(TypeDefinitionHandle typeDefHandle, bool namespaceQualified, string signaturePrefix)
         {
             ValidateHandle(typeDefHandle, TableIndex.TypeDef);
             var typeDef = _metadataReader.GetTypeDefinition(typeDefHandle);
@@ -201,7 +199,8 @@ namespace BUTR.Harmony.Analyzer.Utils
             if (typeDef.IsNested)
             {
                 // Nested type
-                return EmitHandleName(typeDef.GetDeclaringType(), namespaceQualified, owningTypeOverride: null) + "+" + typeName;
+                var originalType = EmitHandleName(typeDef.GetDeclaringType(), namespaceQualified, owningTypeOverride: null);
+                return originalType with { IsNested = true, Name = $"{originalType.Name}+{typeName}" };
             }
 
             string output;
@@ -217,30 +216,28 @@ namespace BUTR.Harmony.Analyzer.Utils
             {
                 output = "";
             }
-            return output + typeName;
+            return SignatureType.FromString(output + typeName);
         }
 
-        private string EmitTypeSpecificationName(TypeSpecificationHandle typeSpecHandle, bool namespaceQualified, string signaturePrefix)
+        private SignatureType EmitTypeSpecificationName(TypeSpecificationHandle typeSpecHandle, bool namespaceQualified, string signaturePrefix)
         {
             ValidateHandle(typeSpecHandle, TableIndex.TypeSpec);
             var typeSpec = _metadataReader.GetTypeSpecification(typeSpecHandle);
-            var genericContext = new DisassemblingGenericContext(Array.Empty<string>(), Array.Empty<string>());
-            return typeSpec.DecodeSignature(this, genericContext);
+            return typeSpec.DecodeSignature(this, DisassemblingGenericContext.Empty);
         }
 
-        private string EmitFieldDefinitionName(FieldDefinitionHandle fieldDefHandle, bool namespaceQualified, string? owningTypeOverride, string signaturePrefix)
+        private SignatureType EmitFieldDefinitionName(FieldDefinitionHandle fieldDefHandle, bool namespaceQualified, SignatureType? owningTypeOverride, string signaturePrefix)
         {
             ValidateHandle(fieldDefHandle, TableIndex.Field);
             var fieldDef = _metadataReader.GetFieldDefinition(fieldDefHandle);
-            var genericContext = new DisassemblingGenericContext(Array.Empty<string>(), Array.Empty<string>());
             var output = new StringBuilder();
-            output.Append(fieldDef.DecodeSignature(this, genericContext));
+            output.Append(fieldDef.DecodeSignature(this, DisassemblingGenericContext.Empty));
             output.Append(' ');
             output.Append(EmitHandleName(fieldDef.GetDeclaringType(), namespaceQualified, owningTypeOverride));
             output.Append('.');
             output.Append(signaturePrefix);
             output.Append(_metadataReader.GetString(fieldDef.Name));
-            return output.ToString();
+            return SignatureType.FromString(output.ToString());
         }
 
         private string EmitString(StringHandle handle)

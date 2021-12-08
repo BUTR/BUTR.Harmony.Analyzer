@@ -1,4 +1,5 @@
-﻿using BUTR.Harmony.Analyzer.Test.Helpers;
+﻿#nullable disable
+using BUTR.Harmony.Analyzer.Test.Helpers;
 
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CodeActions;

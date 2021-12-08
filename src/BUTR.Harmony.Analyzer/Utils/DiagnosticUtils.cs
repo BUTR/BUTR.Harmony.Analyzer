@@ -1,4 +1,6 @@
-﻿using Microsoft.CodeAnalysis;
+﻿using BUTR.Harmony.Analyzer.Data;
+
+using Microsoft.CodeAnalysis;
 
 using System.Collections.Immutable;
 
@@ -11,13 +13,13 @@ namespace BUTR.Harmony.Analyzer.Utils
             return Diagnostic.Create(descriptor, location, properties, messageArgs);
         }
 
-        public static Diagnostic CreateDiagnostic(DiagnosticDescriptor descriptor, IOperation operation, params string[] messageArgs)
+        public static Diagnostic CreateDiagnostic(DiagnosticDescriptor descriptor, GenericContext context, params string[] messageArgs)
         {
-            return CreateDiagnostic(descriptor, ImmutableDictionary<string, string?>.Empty, operation, messageArgs);
+            return CreateDiagnostic(descriptor, ImmutableDictionary<string, string?>.Empty, context, messageArgs);
         }
-        public static Diagnostic CreateDiagnostic(DiagnosticDescriptor descriptor, ImmutableDictionary<string, string?>? properties, IOperation operation, params string[] messageArgs)
+        public static Diagnostic CreateDiagnostic(DiagnosticDescriptor descriptor, ImmutableDictionary<string, string?>? properties, GenericContext context, params string[] messageArgs)
         {
-            return CreateDiagnostic(descriptor, operation.Syntax.GetLocation(), properties, messageArgs);
+            return CreateDiagnostic(descriptor, context.GetLocation(), properties, messageArgs);
         }
     }
 }
