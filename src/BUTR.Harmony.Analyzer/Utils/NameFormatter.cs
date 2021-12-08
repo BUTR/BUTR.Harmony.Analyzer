@@ -1,4 +1,6 @@
-﻿using Microsoft.CodeAnalysis;
+﻿using BUTR.Harmony.Analyzer.Data;
+
+using Microsoft.CodeAnalysis;
 
 namespace BUTR.Harmony.Analyzer.Utils
 {
@@ -17,10 +19,13 @@ namespace BUTR.Harmony.Analyzer.Utils
             parameterOptions: SymbolDisplayParameterOptions.None
         );
 
-        public static string ReflectionName(ITypeSymbol typeSymbol) => typeSymbol.ContainingNamespace is not null
+        public static string ReflectionName(ISymbol typeSymbol) => typeSymbol.ContainingNamespace is not null
             ? $"{typeSymbol.ContainingNamespace}.{typeSymbol.MetadataName}"
             : string.IsNullOrEmpty(typeSymbol.MetadataName)
-                ? typeSymbol.ToDisplayString(Style) // TODO:
+                ? typeSymbol.ToDisplayString(Style) // TODO: Bad fallback
                 : typeSymbol.MetadataName;
+
+        public static string ReflectionName(SignatureType signatureType) => signatureType.ToString(true) ?? string.Empty;
+        public static string ReflectionGenericName(SignatureType signatureType) => signatureType.Name;
     }
 }

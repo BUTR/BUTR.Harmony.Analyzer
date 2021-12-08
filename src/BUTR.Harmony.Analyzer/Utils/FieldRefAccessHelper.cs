@@ -19,14 +19,11 @@ namespace BUTR.Harmony.Analyzer.Utils
 
         private static IEnumerable<Diagnostic> DiagnosticsFieldRefAccess(GenericContext context, ITypeSymbol objectType, ITypeSymbol fieldType, string fieldName)
         {
-            var obectTypeRef = context.Compilation.GetMetadataReference(objectType.ContainingAssembly);
-            //var fieldTypeRef = context.Compilation.GetMetadataReference(fieldType.ContainingAssembly);
-
-            if (obectTypeRef is PortableExecutableReference otr && File.Exists(otr.FilePath)/* && fieldTypeRef is PortableExecutableReference ftr && File.Exists(ftr.FilePath)*/)
+            if (context.Compilation.GetMetadataReference(objectType.ContainingAssembly) is PortableExecutableReference otr && File.Exists(otr.FilePath))
             {
                 return CodeMetadataParser.FindMemberAndCheckType(context, otr.FilePath, objectType, fieldType, fieldName);
             }
-            else // Fallback to roslyn based finding
+            else // Fallback to roslyn based check. Mostly used when source code is available within the solution
             {
                 return CodeRoslynParser.FindMemberAndCheckType(context, objectType, fieldType, fieldName);
             }

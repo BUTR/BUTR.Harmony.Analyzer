@@ -1,5 +1,4 @@
-﻿using BUTR.Harmony.Analyzer.Analyzers;
-using BUTR.Harmony.Analyzer.Data;
+﻿using BUTR.Harmony.Analyzer.Data;
 
 using Microsoft.CodeAnalysis;
 
@@ -102,7 +101,7 @@ namespace BUTR.Harmony.Analyzer.Utils
             var typeName = split[0];
             var memberName = split[1];
 
-            var type = RoslynHelper.GetAssemblies(context).Select(a => a.GetTypeByMetadataName(typeName)).FirstOrDefault(t => t is not null);
+            var type = context.Compilation.GetAssemblies().Select(a => a.GetTypeByMetadataName(typeName)).FirstOrDefault(t => t is not null);
             if (type is null)
             {
                 context.ReportDiagnostic(RuleIdentifiers.ReportType(context, typeName));
@@ -118,12 +117,11 @@ namespace BUTR.Harmony.Analyzer.Utils
 
         private static IEnumerable<Diagnostic> DiagnosticsForMember(GenericContext context, ITypeSymbol typeSymbol, MemberFlags memberFlags, string memberName, ImmutableArray<ITypeSymbol>? paramTypes, ImmutableArray<ArgumentType>? paramVariations)
         {
-            var typeSymbolRef = context.Compilation.GetMetadataReference(typeSymbol.ContainingAssembly);
-            if (typeSymbolRef is PortableExecutableReference @ref && File.Exists(@ref.FilePath))
+            if (context.Compilation.GetMetadataReference(typeSymbol.ContainingAssembly) is PortableExecutableReference @ref && File.Exists(@ref.FilePath))
             {
                 return CodeMetadataParser.FindMember(context, @ref.FilePath, typeSymbol, memberFlags, memberName, paramTypes, paramVariations);
             }
-            else // Fallback to roslyn based finding
+            else // Fallback to roslyn based check. Mostly used when source code is available within the solution
             {
                 return CodeRoslynParser.FindMember(context, typeSymbol, memberFlags, memberName, paramTypes, paramVariations);
             }

@@ -15,108 +15,66 @@ namespace BUTR.Harmony.Analyzer.Utils
 {
     internal static class MetadataHelper
     {
-        public static (TypeDefinition, PEReader)? FindTypeDefinition(GenericContext genericContext, PEReader reader, ITypeSymbol typeSymbol)
+        public static (TypeDefinition, PEReader)? FindTypeDefinition(Compilation compilation, PEReader reader, ITypeSymbol typeSymbol)
         {
             var metadata = reader.GetMetadataReader();
 
             var reflectionTypeName = $"{typeSymbol.ContainingNamespace}.{typeSymbol.MetadataName}";
+
             foreach (var typeDefinition in metadata.TypeDefinitions.Select(metadata.GetTypeDefinition))
             {
-                var typeDefName = metadata.GetString(typeDefinition.Name);
-                var typeDefNamespace = metadata.GetString(typeDefinition.Namespace);
-                var typeDefNameFull = $"{typeDefNamespace}.{typeDefName}";
-                if (string.Equals(typeDefNameFull, reflectionTypeName, StringComparison.Ordinal))
+                var typeDefName = $"{metadata.GetString(typeDefinition.Namespace)}.{metadata.GetString(typeDefinition.Name)}";
+                if (string.Equals(typeDefName, reflectionTypeName, StringComparison.Ordinal))
                 {
                     return (typeDefinition, reader);
                 }
             }
+
             foreach (var typeReference in metadata.TypeReferences.Select(metadata.GetTypeReference))
             {
-                var typeRefName = metadata.GetString(typeReference.Name);
-                var typeRefNamespace = metadata.GetString(typeReference.Namespace);
-                var typeRefNameFull = $"{typeRefNamespace}.{typeRefName}";
-                if (string.Equals(typeRefNameFull, reflectionTypeName, StringComparison.Ordinal))
+                var typeRefName = $"{metadata.GetString(typeReference.Namespace)}.{metadata.GetString(typeReference.Name)}";
+                if (string.Equals(typeRefName, reflectionTypeName, StringComparison.Ordinal))
                 {
-                    return FindTypeDefinitionFromTypeReference(genericContext, metadata, typeReference);
+                    return FindTypeDefinitionFromTypeReference(compilation, metadata, typeReference);
                 }
             }
-            /*
-            if (typeSymbol is INamedTypeSymbol namedTypeSymbol && namedTypeSymbol.Arity > 0)
-            {
-                var typeParams = namedTypeSymbol.TypeParameters;
-            }
-            else
-            {
 
-            }
-
-            var typeReference = ReflectionHelper.ParseReflectionName(reflectionTypeName);
-            foreach (var typeDefinition in metadata.TypeDefinitions.Select(metadata.GetTypeDefinition))
-            {
-                var typeDefFullName = typeDefinition.GetFullTypeName(metadata);
-                if (ReflectionHelper.ParseReflectionName(typeDefFullName.ReflectionName) is not GetClassTypeReference typeDefReferenceGC)
-                {
-                    var t = ReflectionHelper.ParseReflectionName(typeDefFullName.ReflectionName);
-                    continue;
-                }
-
-                if (typeReference is GetClassTypeReference typeReferenceGC)
-                {
-                    if (typeReferenceGC.FullTypeName.Equals(typeDefReferenceGC.FullTypeName))
-                    {
-                        return typeDefinition;
-                    }
-                }
-
-                if (typeReference is ParameterizedTypeReference typeReferenceP)
-                {
-                    if (typeReferenceP.GenericType is GetClassTypeReference typeReferenceGC_)
-                    {
-                        if (typeReferenceGC_.FullTypeName.Equals(typeDefReferenceGC.FullTypeName))
-                        {
-                            return typeDefinition;
-                        }
-                    }
-                }
-            }
-            */
             return null;
         }
 
-        public static (FieldDefinition, PEReader)? FindFieldDefinition(GenericContext context, PEReader reader, TypeDefinition typeDef, bool checkBaseTypes, string fieldName)
+        public static (FieldDefinition, PEReader)? FindFieldDefinition(Compilation compilation, PEReader reader, TypeDefinition typeDef, bool checkBaseTypes, string fieldName)
         {
-            return FindMemberDefinition(context, reader, typeDef, checkBaseTypes,
+            return FindMemberDefinition(compilation, reader, typeDef, checkBaseTypes,
                 (r, x) => x.GetFields().Select(r.GetMetadataReader().GetFieldDefinition),
                 fieldName, null, null);
         }
 
-        public static (PropertyDefinition, PEReader)? FindPropertyDefinition(GenericContext context, PEReader reader, TypeDefinition typeDef, bool checkBaseTypes, string propertyName)
+        public static (PropertyDefinition, PEReader)? FindPropertyDefinition(Compilation compilation, PEReader reader, TypeDefinition typeDef, bool checkBaseTypes, string propertyName)
         {
-            return FindMemberDefinition(context, reader, typeDef, checkBaseTypes,
+            return FindMemberDefinition(compilation, reader, typeDef, checkBaseTypes,
                 (r, x) => x.GetProperties().Select(r.GetMetadataReader().GetPropertyDefinition),
                 propertyName, null, null);
         }
 
-        public static (MethodDefinition, PEReader)? FindMethodDefinition(GenericContext context, PEReader reader, TypeDefinition typeDef, bool checkBaseTypes, string methodName, ImmutableArray<ITypeSymbol>? paramTypes, ImmutableArray<ArgumentType>? paramVariations)
+        public static (MethodDefinition, PEReader)? FindMethodDefinition(Compilation compilation, PEReader reader, TypeDefinition typeDef, bool checkBaseTypes, string methodName, ImmutableArray<ITypeSymbol>? paramTypes, ImmutableArray<ArgumentType>? paramVariations)
         {
-            return FindMemberDefinition(context, reader, typeDef, checkBaseTypes,
+            return FindMemberDefinition(compilation, reader, typeDef, checkBaseTypes,
                 (r, x) => x.GetMethods().Select(r.GetMetadataReader().GetMethodDefinition),
                 methodName, paramTypes, paramVariations);
         }
 
         private static (TMember, PEReader)? FindMemberDefinition<TMember>(
-            GenericContext context,
+            Compilation compilation,
             PEReader reader,
             TypeDefinition typeDef,
             bool checkBaseTypes,
             Func<PEReader, TypeDefinition, IEnumerable<TMember>> getMembersFromTypeDef,
-            string memberName, ImmutableArray<ITypeSymbol>? paramTypesNullable, ImmutableArray<ArgumentType>? paramVariationsNullable) where TMember : struct
+            string memberName, ImmutableArray<ITypeSymbol>? paramTypesNull, ImmutableArray<ArgumentType>? paramVariationsNull) where TMember : struct
         {
-            var metadata = reader.GetMetadataReader();
-
-            if (paramTypesNullable is { } pt && paramVariationsNullable is { } pv && pt.Length != pv.Length)
+            if (paramTypesNull is { } pt && paramVariationsNull is { } pv && pt.Length != pv.Length)
                 return null;
 
+            var metadata = reader.GetMetadataReader();
             while (true)
             {
                 foreach (var methodDef in getMembersFromTypeDef(reader, typeDef))
@@ -141,8 +99,10 @@ namespace BUTR.Harmony.Analyzer.Utils
                             var methodDefName = metadata.GetString(methodDefinition.Name);
                             if (string.Equals(methodDefName, memberName, StringComparison.Ordinal))
                             {
-                                if (!CompareMethodSignatures(methodDefinition, paramTypesNullable, paramVariationsNullable))
+                                if (!CompareMethodSignatures(methodDefinition, paramTypesNull, paramVariationsNull))
+                                {
                                     continue;
+                                }
 
                                 return (methodDef, reader);
                             }
@@ -151,7 +111,9 @@ namespace BUTR.Harmony.Analyzer.Utils
                 }
 
                 if (!checkBaseTypes || typeDef.BaseType.IsNil)
+                {
                     break;
+                }
 
                 if (typeDef.BaseType.Kind == HandleKind.TypeDefinition)
                 {
@@ -162,11 +124,15 @@ namespace BUTR.Harmony.Analyzer.Utils
                 if (typeDef.BaseType.Kind == HandleKind.TypeReference)
                 {
                     var baseTypeRef = metadata.GetTypeReference((TypeReferenceHandle) typeDef.BaseType);
-                    if (FindTypeDefinitionFromTypeReference(context, metadata, baseTypeRef) is not var (baseTypeDef, peReader))
+                    if (FindTypeDefinitionFromTypeReference(compilation, metadata, baseTypeRef) is var (baseTypeDef, baseReader))
                     {
-                        return null;
+                        typeDef = baseTypeDef;
+                        reader = baseReader;
+                        metadata = reader.GetMetadataReader();
+                        continue;
                     }
-                    return FindMemberDefinition(context, peReader, baseTypeDef, checkBaseTypes, getMembersFromTypeDef, memberName, paramTypesNullable, paramVariationsNullable);
+
+                    return null;
                 }
             }
 
@@ -187,16 +153,16 @@ namespace BUTR.Harmony.Analyzer.Utils
                     return false;
                 }
 
-                var paramStr = signatureType.Name;
+                var paramStr = NameFormatter.ReflectionGenericName(signatureType);
                 var paramTypeStr = NameFormatter.ReflectionName(namedTypeSymbol);
                 if (!string.Equals(paramStr, paramTypeStr))
                 {
                     return false;
                 }
 
-                for (var j = 0; j < signatureType.GenericParameters.Length; j++)
+                for (var i = 0; i < signatureType.GenericParameters.Length; i++)
                 {
-                    if (!CompareTypes(signatureType.GenericParameters[j], namedTypeSymbol.TypeArguments[j]))
+                    if (!CompareTypes(signatureType.GenericParameters[i], namedTypeSymbol.TypeArguments[i]))
                     {
                         return false;
                     }
@@ -204,8 +170,7 @@ namespace BUTR.Harmony.Analyzer.Utils
             }
             else
             {
-                var paramStr = signatureType.ToString(true);
-                //var paramTypeStr = paramTypes[i].ToDisplayString(Style);
+                var paramStr = NameFormatter.ReflectionName(signatureType);
                 var paramTypeStr = NameFormatter.ReflectionName(typeSymbol);
                 if (!string.Equals(paramStr, paramTypeStr))
                 {
@@ -249,8 +214,7 @@ namespace BUTR.Harmony.Analyzer.Utils
                     return false;
                 }
 
-                var paramVariation = paramVariations[i];
-                switch (paramVariation)
+                switch (paramVariations[i])
                 {
                     case ArgumentType.Normal:
                     {
@@ -291,25 +255,30 @@ namespace BUTR.Harmony.Analyzer.Utils
             return true;
         }
 
-        private static (TypeDefinition, PEReader)? FindTypeDefinitionFromTypeReference(GenericContext context, MetadataReader metadata, TypeReference typeReference)
+        private static (TypeDefinition, PEReader)? FindTypeDefinitionFromTypeReference(Compilation compilation, MetadataReader metadata, TypeReference typeReference)
         {
-            var typeRefNamespace = metadata.GetString(typeReference.Namespace);
-            var typeRefName = metadata.GetString(typeReference.Name);
-
             var asm = metadata.GetAssemblyReference((AssemblyReferenceHandle) typeReference.ResolutionScope);
             var asmName = metadata.GetString(asm.Name);
-            var assembly = RoslynHelper.GetAssemblies(context).FirstOrDefault(a => a.Name == asmName);
-            var typeSymbolRef = context.Compilation.GetMetadataReference(assembly);
-            if (typeSymbolRef is not PortableExecutableReference @ref || !File.Exists(@ref.FilePath)) return null;
-            var peReaderObject = new PEReader(File.ReadAllBytes(@ref.FilePath).ToImmutableArray());
-            var metadataObject = peReaderObject.GetMetadataReader();
-            var typeDef = metadataObject.TypeDefinitions.Select(metadataObject.GetTypeDefinition).FirstOrDefault(typeDef =>
+            var assembly = compilation.GetAssemblies().FirstOrDefault(a => a.Name == asmName);
+
+            if (compilation.GetMetadataReference(assembly) is not PortableExecutableReference @ref || !File.Exists(@ref.FilePath))
             {
-                var @namespace = metadataObject.GetString(typeDef.Namespace);
-                var name = metadataObject.GetString(typeDef.Name);
+                return null;
+            }
+
+            var peReaderType = new PEReader(File.ReadAllBytes(@ref.FilePath).ToImmutableArray());
+            var metadataType = peReaderType.GetMetadataReader();
+
+            var typeRefNamespace = metadata.GetString(typeReference.Namespace);
+            var typeRefName = metadata.GetString(typeReference.Name);
+            var typeDef = metadataType.TypeDefinitions.Select(metadataType.GetTypeDefinition).FirstOrDefault(typeDef =>
+            {
+                var @namespace = metadataType.GetString(typeDef.Namespace);
+                var name = metadataType.GetString(typeDef.Name);
                 return @namespace == typeRefNamespace && name == typeRefName;
             });
-            return (typeDef, peReaderObject);
+
+            return (typeDef, peReaderType);
         }
     }
 }

@@ -104,24 +104,26 @@ namespace BUTR.Harmony.Analyzer.Utils
         public static IEnumerable<Diagnostic> FindMemberAndCheckType(GenericContext context, ITypeSymbol objectType, ITypeSymbol fieldType, string fieldName)
         {
             var objectTypeName = NameFormatter.ReflectionName(objectType);
-            //var objectTypeName = objectType.ToDisplayString(MetadataHelper.Style);
-
-            //var fieldType = fieldTypeAssembly.GetTypeByMetadataName(fieldTypeName);
-            //if (fieldType is null)
-            //{
-            //    yield return ReportType(operation, fieldTypeName);
-            //    yield break;
-            //}
 
             while (true)
             {
                 var foundMembers = objectType.GetMembers(fieldName);
                 foreach (var member in foundMembers)
                 {
-                    if (member is not IFieldSymbol)
+                    if (member is not IFieldSymbol fieldSymbol)
                     {
                         yield return RuleIdentifiers.ReportMember(context, objectTypeName, fieldName);
+                        yield break;
                     }
+
+                    var fieldTypeName = NameFormatter.ReflectionName(fieldType);
+                    var fieldSymbolName = NameFormatter.ReflectionName(fieldSymbol.Type);
+                    if (!string.Equals(fieldTypeName, fieldSymbolName))
+                    {
+                        yield return RuleIdentifiers.ReportWrongType(context, objectTypeName, fieldTypeName, fieldSymbolName);
+                        yield break;
+                    }
+
                     yield break;
                 }
 

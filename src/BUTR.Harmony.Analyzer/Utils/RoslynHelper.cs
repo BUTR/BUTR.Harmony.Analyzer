@@ -12,39 +12,55 @@ namespace BUTR.Harmony.Analyzer.Utils
 {
     internal static class RoslynHelper
     {
-        public static IEnumerable<IAssemblySymbol> GetAssemblies(GenericContext context) => context.Compilation.References
-            .Select(mr => context.Compilation.GetAssemblyOrModuleSymbol(mr))
+        public static IEnumerable<IAssemblySymbol> GetAssemblies(this Compilation compilation) => compilation.References
+            .Select(compilation.GetAssemblyOrModuleSymbol)
             .OfType<IAssemblySymbol>()
-            .Concat(new[] { context.Compilation.Assembly });
+            .Concat(new[] { compilation.Assembly });
 
         public static ImmutableArray<ITypeSymbol> GetTypeInfos(SemanticModel? semanticModel, ArgumentSyntax argument, CancellationToken ct)
         {
-            if (semanticModel is null) return ImmutableArray<ITypeSymbol>.Empty;
-            if (argument.Expression is not TypeOfExpressionSyntax expression) return ImmutableArray<ITypeSymbol>.Empty;
+            if (semanticModel is null)
+            {
+                return ImmutableArray<ITypeSymbol>.Empty;
+            }
+
+            if (argument.Expression is not TypeOfExpressionSyntax expression)
+            {
+                return ImmutableArray<ITypeSymbol>.Empty;
+            }
 
             var type = semanticModel.GetTypeInfo(expression.Type, ct);
             if (type.Type.TypeKind == TypeKind.TypeParameter && type.Type is ITypeParameterSymbol typeParameterSymbol)
             {
                 return typeParameterSymbol.ConstraintTypes;
             }
-            return ImmutableArray.Create(type.Type);
 
+            return ImmutableArray.Create(type.Type);
         }
 
         public static string? GetString(SemanticModel? semanticModel, ArgumentSyntax argument, CancellationToken ct)
         {
-            if (semanticModel is null) return null;
+            if (semanticModel is null)
+            {
+                return null;
+            }
 
             if (argument.Expression is LiteralExpressionSyntax literal)
+            {
                 return literal.Token.ValueText;
+            }
 
             var constantValue = semanticModel.GetConstantValue(argument.Expression, ct);
             if (constantValue.HasValue && constantValue.Value is string constString)
+            {
                 return constString;
+            }
 
             INamedTypeSymbol? StringType() => semanticModel.Compilation.GetTypeByMetadataName("System.String");
             if (semanticModel.GetSymbolInfo(argument.Expression, ct).Symbol is IFieldSymbol { Name: "Empty" } field && SymbolEqualityComparer.Default.Equals(field.Type, StringType()))
+            {
                 return "";
+            }
 
             return null;
         }
@@ -79,8 +95,7 @@ namespace BUTR.Harmony.Analyzer.Utils
                     return false;
                 }
 
-                var type = paramVariations[i];
-                switch (type)
+                switch (paramVariations[i])
                 {
                     case ArgumentType.Normal:
                     {

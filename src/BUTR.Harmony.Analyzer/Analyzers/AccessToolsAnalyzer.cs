@@ -21,7 +21,9 @@ namespace BUTR.Harmony.Analyzer.Analyzers
             RuleIdentifiers.TypeRule,
             RuleIdentifiers.PropertyGetterRule,
             RuleIdentifiers.PropertySetterRule,
-            RuleIdentifiers.WrongTypeRule
+            RuleIdentifiers.WrongTypeRule,
+            RuleIdentifiers.ConstructorRule,
+            RuleIdentifiers.StaticConstructorRule
         );
 
         public override void Initialize(AnalysisContext context)
