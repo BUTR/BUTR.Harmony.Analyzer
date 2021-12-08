@@ -19,7 +19,7 @@ namespace BUTR.Harmony.Analyzer
         public const string MissingConstructor = "BHA0007";
         public const string MissingStaticConstructor = "BHA0008";
 
-        public static string GetHelpUri(string idenfifier) => 
+        public static string GetHelpUri(string idenfifier) =>
             string.Format(CultureInfo.InvariantCulture, "https://github.com/BUTR/BUTR.Harmony.Analyzer/blob/master/docs/Rules/{0}.md", idenfifier);
 
         internal static readonly DiagnosticDescriptor AssemblyRule = new(
