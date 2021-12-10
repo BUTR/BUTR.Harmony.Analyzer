@@ -1,8 +1,5 @@
-﻿using HarmonyLib;
+﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-
-using System.Numerics;
 using System.Threading.Tasks;
 
 namespace BUTR.Harmony.Analyzer.Test.Metadata
