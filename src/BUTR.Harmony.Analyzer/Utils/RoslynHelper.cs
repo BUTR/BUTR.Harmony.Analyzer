@@ -80,7 +80,7 @@ namespace BUTR.Harmony.Analyzer.Utils
             for (var i = 0; i < methodSymbol.Parameters.Length; i++)
             {
                 var param = methodSymbol.Parameters[i];
-                if (!SymbolEqualityComparer.Default.Equals(param, paramTypes[i]))
+                if (!SymbolEqualityComparer.Default.Equals(param.Type, paramTypes[i]))
                 {
                     return false;
                 }

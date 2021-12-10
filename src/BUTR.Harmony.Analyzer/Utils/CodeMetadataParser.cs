@@ -7,8 +7,6 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
-using System.Reflection;
-using System.Reflection.Metadata;
 using System.Reflection.PortableExecutable;
 
 namespace BUTR.Harmony.Analyzer.Utils
@@ -20,9 +18,7 @@ namespace BUTR.Harmony.Analyzer.Utils
             var disposables = new List<IDisposable>();
             try
             {
-                var typeName = NameFormatter.ReflectionName(typeSymbol);
-
-                var checkBase = !memberFlags.HasFlag(MemberFlags.Declared);
+                var checkBase = !memberFlags.HasFlag(MemberFlags.Declared) && !memberFlags.HasFlag(MemberFlags.Constructor) && !memberFlags.HasFlag(MemberFlags.StaticConstructor);
                 memberFlags &= ~MemberFlags.Declared;
 
                 var checkGetter = memberFlags.HasFlag(MemberFlags.Getter);
@@ -33,36 +29,39 @@ namespace BUTR.Harmony.Analyzer.Utils
                 var checkStaticConstructor = memberFlags.HasFlag(MemberFlags.StaticConstructor);
                 memberFlags &= ~MemberFlags.Constructor & ~MemberFlags.StaticConstructor;
 
+                if (checkConstructor)
+                {
+                    memberName = ".ctor";
+                }
+                if (checkStaticConstructor)
+                {
+                    memberName = ".cctor";
+                }
+
                 var peReader = new PEReader(File.ReadAllBytes(filePath).ToImmutableArray());
                 disposables.Add(peReader);
                 if (!peReader.HasMetadata)
                 {
-                    yield return RuleIdentifiers.ReportAssembly(context, typeSymbol.ContainingAssembly.Name, typeName);
+                    yield return RuleIdentifiers.ReportAssembly(context, typeSymbol.ContainingAssembly.Name, NameFormatter.ReflectionName(typeSymbol));
                     yield break;
                 }
 
                 if (MetadataHelper.FindTypeDefinition(context.Compilation, peReader, typeSymbol) is not var (typeDefinition, typeReader))
                 {
-                    yield return RuleIdentifiers.ReportType(context, typeName);
+                    yield return RuleIdentifiers.ReportType(context, NameFormatter.ReflectionName(typeSymbol));
                     yield break;
                 }
                 if (disposables.Contains(typeReader)) disposables.Add(typeReader);
 
-                if (memberFlags is MemberFlags.Field)
+                switch (memberFlags)
                 {
-                    if (MetadataHelper.FindFieldDefinition(context.Compilation, typeReader, typeDefinition, checkBase, memberName) is var (fieldDefinition, fieldReader))
+                    case MemberFlags.Field when MetadataHelper.FindFieldDefinition(context.Compilation, typeReader, typeDefinition, checkBase, memberName) is var (fieldDefinition, fieldReader):
                     {
                         if (disposables.Contains(fieldReader)) disposables.Add(fieldReader);
-                    }
-                    else
-                    {
-                        yield return RuleIdentifiers.ReportMember(context, typeName, memberName);
                         yield break;
                     }
-                }
-                if (memberFlags is MemberFlags.Property)
-                {
-                    if (MetadataHelper.FindPropertyDefinition(context.Compilation, typeReader, typeDefinition, checkBase, memberName) is var (propertyDefinition, propertyReader))
+
+                    case MemberFlags.Property when MetadataHelper.FindPropertyDefinition(context.Compilation, typeReader, typeDefinition, checkBase, memberName) is var (propertyDefinition, propertyReader):
                     {
                         if (disposables.Contains(propertyReader)) disposables.Add(propertyReader);
 
@@ -77,34 +76,16 @@ namespace BUTR.Harmony.Analyzer.Utils
                         }
                         yield break;
                     }
-                    else
-                    {
-                        yield return RuleIdentifiers.ReportMember(context, typeName, memberName);
-                        yield break;
-                    }
-
-
-                }
-                if (memberFlags is MemberFlags.Method)
-                {
-                    if (checkConstructor)
-                    {
-                        memberName = ".ctor";
-                        checkBase = false;
-                    }
-                    if (checkStaticConstructor)
-                    {
-                        memberName = ".cctor";
-                        checkBase = false;
-                    }
-
-                    if (MetadataHelper.FindMethodDefinition(context.Compilation, typeReader, typeDefinition, checkBase, memberName, paramTypes, paramVariations) is var (methodDefinition, methodReader))
+                    case MemberFlags.Method when MetadataHelper.FindMethodDefinition(context.Compilation, typeReader, typeDefinition, checkBase, memberName, paramTypes, paramVariations) is var (methodDefinition, methodReader):
                     {
                         if (disposables.Contains(methodReader)) disposables.Add(methodReader);
+                        yield break;
                     }
-                    else
+                    case MemberFlags.Property:
+                    case MemberFlags.Field:
+                    case MemberFlags.Method:
                     {
-                        yield return RuleIdentifiers.ReportMember(context, typeName, memberName);
+                        yield return RuleIdentifiers.ReportMember(context, NameFormatter.ReflectionName(typeSymbol), memberName);
                         yield break;
                     }
                 }
@@ -133,12 +114,12 @@ namespace BUTR.Harmony.Analyzer.Utils
                 }
                 if (disposables.Contains(objectTypeReader)) disposables.Add(objectTypeReader);
 
-                if (MetadataHelper.FindTypeDefinition(context.Compilation, peReader, fieldType) is not var (fieldTypeReference, fieldTypeReader))
-                {
-                    yield return RuleIdentifiers.ReportType(context, NameFormatter.ReflectionName(fieldType));
-                    yield break;
-                }
-                if (disposables.Contains(fieldTypeReader)) disposables.Add(fieldTypeReader);
+                //if (MetadataHelper.FindTypeDefinition(context.Compilation, peReader, fieldType) is not var (fieldTypeReference, fieldTypeReader))
+                //{
+                //    yield return RuleIdentifiers.ReportType(context, NameFormatter.ReflectionName(fieldType));
+                //    yield break;
+                //}
+                //if (disposables.Contains(fieldTypeReader)) disposables.Add(fieldTypeReader);
 
                 if (MetadataHelper.FindFieldDefinition(context.Compilation, objectTypeReader, objectTypeDefinition, true, fieldName) is not var (objectFieldDefinition, objectFieldReader))
                 {

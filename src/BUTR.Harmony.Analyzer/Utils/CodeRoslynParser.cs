@@ -11,9 +11,35 @@ namespace BUTR.Harmony.Analyzer.Utils
     {
         public static IEnumerable<Diagnostic> FindMember(GenericContext context, ITypeSymbol typeSymbol, MemberFlags memberFlags, string memberName, ImmutableArray<ITypeSymbol>? paramTypes, ImmutableArray<ArgumentType>? paramVariations)
         {
-            var checkBase = !memberFlags.HasFlag(MemberFlags.Declared);
+            var checkBase = !memberFlags.HasFlag(MemberFlags.Declared) && !memberFlags.HasFlag(MemberFlags.Constructor) && !memberFlags.HasFlag(MemberFlags.StaticConstructor);
             memberFlags &= ~MemberFlags.Declared;
 
+            var searchType = typeSymbol;
+            while (true)
+            {
+                var result = FindTypeMember(context, searchType, memberFlags, memberName, paramTypes, paramVariations).ToImmutableArray();
+                if (result.Length == 0)
+                {
+                    yield break;
+                }
+
+                if (checkBase && searchType.BaseType is { } baseType)
+                {
+                    searchType = baseType;
+                    continue;
+                }
+                else
+                {
+                    break;
+                }
+            }
+
+            // We haven't found the member in the exact type or base classes. Report that.
+            yield return RuleIdentifiers.ReportMember(context, NameFormatter.ReflectionName(typeSymbol), memberName);
+        }
+
+        private static IEnumerable<Diagnostic> FindTypeMember(GenericContext context, ITypeSymbol typeSymbol, MemberFlags memberFlags, string memberName, ImmutableArray<ITypeSymbol>? paramTypes, ImmutableArray<ArgumentType>? paramVariations)
+        {
             var checkGetter = memberFlags.HasFlag(MemberFlags.Getter);
             var checkSetter = memberFlags.HasFlag(MemberFlags.Setter);
             memberFlags &= ~MemberFlags.Getter & ~MemberFlags.Setter;
@@ -22,89 +48,67 @@ namespace BUTR.Harmony.Analyzer.Utils
             var checkStaticConstructor = memberFlags.HasFlag(MemberFlags.StaticConstructor);
             memberFlags &= ~MemberFlags.Constructor & ~MemberFlags.StaticConstructor;
 
-            var typeName = NameFormatter.ReflectionName(typeSymbol);
-
-            while (true)
+            if (checkConstructor)
             {
-                var foundMembers = typeSymbol.GetMembers(memberName);
-                foreach (var member in foundMembers)
-                {
-                    if (memberFlags is MemberFlags.Field)
-                    {
-                        if (member is not IFieldSymbol)
-                        {
-                            yield return RuleIdentifiers.ReportMember(context, typeName, memberName);
-                            yield break;
-                        }
-                    }
-                    if (memberFlags is MemberFlags.Property)
-                    {
-                        if (member is IPropertySymbol propertySymbol)
-                        {
-                            if (checkGetter && propertySymbol.GetMethod is null)
-                            {
-                                yield return RuleIdentifiers.ReportMissingGetter(context, memberName);
-                            }
-                            if (checkSetter && propertySymbol.SetMethod is null)
-                            {
-                                yield return RuleIdentifiers.ReportMissingSetter(context, memberName);
-                            }
-                            yield break;
-                        }
-                        else
-                        {
-                            yield return RuleIdentifiers.ReportMember(context, typeName, memberName);
-                            yield break;
-                        }
-                    }
-                    if (memberFlags is MemberFlags.Method)
-                    {
-                        if (checkConstructor)
-                        {
-                            memberName = ".ctor";
-                            checkBase = false;
-                        }
-                        if (checkStaticConstructor)
-                        {
-                            memberName = ".cctor";
-                            checkBase = false;
-                        }
-
-                        if (member is IMethodSymbol methodSymbol && !RoslynHelper.CompareMethodSignatures(methodSymbol, paramTypes, paramVariations))
-                        {
-                            if (checkConstructor && methodSymbol.MethodKind != MethodKind.Constructor)
-                            {
-                                yield return RuleIdentifiers.ReportMissingConstructor(context, typeName);
-                            }
-                            if (checkStaticConstructor && methodSymbol.MethodKind != MethodKind.StaticConstructor)
-                            {
-                                yield return RuleIdentifiers.ReportMissingStaticConstructor(context, typeName);
-                            }
-
-                            continue;
-                        }
-                        yield return RuleIdentifiers.ReportMember(context, typeName, memberName);
-                        yield break;
-                    }
-                }
-
-                if (checkBase && typeSymbol.BaseType is { } baseType)
-                {
-                    typeSymbol = baseType;
-                    continue;
-                }
-
-                break;
+                memberName = ".ctor";
+            }
+            if (checkStaticConstructor)
+            {
+                memberName = ".cctor";
             }
 
-            // We haven't found the member in the exact type or base classes. Report that.
-            yield return RuleIdentifiers.ReportMember(context, typeName, memberName);
+            foreach (var member in typeSymbol.GetMembers(memberName))
+            {
+                switch (memberFlags)
+                {
+                    case MemberFlags.Field when member is IFieldSymbol fieldSymbol:
+                    {
+                        yield break;
+                    }
+                    case MemberFlags.Property when member is IPropertySymbol propertySymbol:
+                    {
+                        if (checkGetter && propertySymbol.GetMethod is null)
+                        {
+                            yield return RuleIdentifiers.ReportMissingGetter(context, memberName);
+                        }
+                        if (checkSetter && propertySymbol.SetMethod is null)
+                        {
+                            yield return RuleIdentifiers.ReportMissingSetter(context, memberName);
+                        }
+                        yield break;
+                    }
+                    case MemberFlags.Method when member is IMethodSymbol methodSymbol:
+                    {
+                        if (!RoslynHelper.CompareMethodSignatures(methodSymbol, paramTypes, paramVariations))
+                        {
+                            continue;
+                        }
+
+                        if (checkConstructor && methodSymbol.MethodKind != MethodKind.Constructor)
+                        {
+                            yield return RuleIdentifiers.ReportMissingConstructor(context, NameFormatter.ReflectionName(typeSymbol));
+                        }
+                        if (checkStaticConstructor && methodSymbol.MethodKind != MethodKind.StaticConstructor)
+                        {
+                            yield return RuleIdentifiers.ReportMissingStaticConstructor(context, NameFormatter.ReflectionName(typeSymbol));
+                        }
+
+                        yield break;
+                    }
+                    case MemberFlags.Field:
+                    case MemberFlags.Property:
+                    case MemberFlags.Method:
+                    {
+                        continue;
+                    }
+                }
+            }
+
+            yield return RuleIdentifiers.ReportMember(context, NameFormatter.ReflectionName(typeSymbol), memberName);
         }
 
         public static IEnumerable<Diagnostic> FindMemberAndCheckType(GenericContext context, ITypeSymbol objectType, ITypeSymbol fieldType, string fieldName)
         {
-            var objectTypeName = NameFormatter.ReflectionName(objectType);
-
             while (true)
             {
                 var foundMembers = objectType.GetMembers(fieldName);
@@ -112,7 +116,7 @@ namespace BUTR.Harmony.Analyzer.Utils
                 {
                     if (member is not IFieldSymbol fieldSymbol)
                     {
-                        yield return RuleIdentifiers.ReportMember(context, objectTypeName, fieldName);
+                        yield return RuleIdentifiers.ReportMember(context, NameFormatter.ReflectionName(objectType), fieldName);
                         yield break;
                     }
 
@@ -120,7 +124,7 @@ namespace BUTR.Harmony.Analyzer.Utils
                     var fieldSymbolName = NameFormatter.ReflectionName(fieldSymbol.Type);
                     if (!string.Equals(fieldTypeName, fieldSymbolName))
                     {
-                        yield return RuleIdentifiers.ReportWrongType(context, objectTypeName, fieldTypeName, fieldSymbolName);
+                        yield return RuleIdentifiers.ReportWrongType(context, NameFormatter.ReflectionName(objectType), fieldTypeName, fieldSymbolName);
                         yield break;
                     }
 
@@ -137,7 +141,7 @@ namespace BUTR.Harmony.Analyzer.Utils
             }
 
             // We haven't found the member in the exact type or base classes. Report that.
-            yield return RuleIdentifiers.ReportMember(context, objectTypeName, fieldName);
+            yield return RuleIdentifiers.ReportMember(context, NameFormatter.ReflectionName(objectType), fieldName);
         }
     }
 }

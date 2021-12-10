@@ -3,7 +3,7 @@
 using System;
 using System.Threading.Tasks;
 
-namespace BUTR.Harmony.Analyzer.Test
+namespace BUTR.Harmony.Analyzer.Test.Metadata
 {
     public partial class AccessToolsAnalyzerTest
     {
@@ -18,7 +18,7 @@ namespace BUTR.Harmony.Analyzer.Test
     {{
         public static void TestMethod()
         {{
-            {(isCorrect ? "" : "[||]")}HarmonyLib.AccessTools2.{method}({GetArg(testType, type, member)});
+            {(isCorrect ? "" : "[||]")}HarmonyLib.AccessTools.{method}({GetArg(testType, type, member)});
         }}
     }}
 }}

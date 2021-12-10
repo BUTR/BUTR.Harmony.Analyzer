@@ -1,8 +1,11 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+﻿using HarmonyLib;
 
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+
+using System.Numerics;
 using System.Threading.Tasks;
 
-namespace BUTR.Harmony.Analyzer.Test
+namespace BUTR.Harmony.Analyzer.Test.Metadata
 {
     public partial class AccessToolsAnalyzerTest
     {
@@ -15,7 +18,7 @@ namespace BUTR.Harmony.Analyzer.Test
     {{
         public static void TestMethod()
         {{
-            {(isCorrect ? "" : "[||]")}HarmonyLib.AccessTools2.{method}<{objectType}, {fieldType}>(""{fieldName}"");
+            {(isCorrect ? "" : "[||]")}HarmonyLib.AccessTools.{method}<{objectType}, {fieldType}>(""{fieldName}"");
         }}
     }}
 }}
@@ -25,7 +28,7 @@ namespace BUTR.Harmony.Analyzer.Test
 
         [DataTestMethod]
         [DataRow("StaticFieldRefAccess", true, "System.Text.Json.JsonException", "string", "_message")]
-        [DataRow("StructFieldRefAccess", true, "System.Text.Json.JsonException", "string", "_message")]
+        [DataRow("StructFieldRefAccess", true, "System.Numerics.Vector3", "float", "X")]
         public async Task FieldRef_Default(string method, bool isCorrect, string objectType, string fieldType, string fieldName)
         {
             await CreateProjectBuilder().WithSourceCode(SourceCode(method, isCorrect, objectType, fieldType, fieldName)).ValidateAsync();
@@ -33,7 +36,8 @@ namespace BUTR.Harmony.Analyzer.Test
 
         [DataTestMethod]
         [DataRow("StaticFieldRefAccess", false, "System.Text.Json.JsonException", "string", "_message1")]
-        [DataRow("StructFieldRefAccess", false, "System.Text.Json.JsonException", "string", "_message1")]
+        [DataRow("StructFieldRefAccess", false, "System.Numerics.Vector3", "float", "X1")]
+
         public async Task FieldRef_Member(string method, bool isCorrect, string objectType, string fieldType, string fieldName)
         {
             await CreateProjectBuilder().WithSourceCode(SourceCode(method, isCorrect, objectType, fieldType, fieldName)).ValidateAsync();
@@ -41,7 +45,7 @@ namespace BUTR.Harmony.Analyzer.Test
 
         [DataTestMethod]
         [DataRow("StaticFieldRefAccess", false, "System.Text.Json.JsonException", "bool", "_message")]
-        [DataRow("StructFieldRefAccess", false, "System.Text.Json.JsonException", "bool", "_message")]
+        [DataRow("StructFieldRefAccess", false, "System.Numerics.Vector3", "int", "X")]
         public async Task FieldRef_MemberTypePrimitive(string method, bool isCorrect, string objectType, string fieldType, string fieldName)
         {
             await CreateProjectBuilder().WithSourceCode(SourceCode(method, isCorrect, objectType, fieldType, fieldName)).ValidateAsync();
@@ -49,7 +53,7 @@ namespace BUTR.Harmony.Analyzer.Test
 
         [DataTestMethod]
         [DataRow("StaticFieldRefAccess", false, "System.Text.Json.Nodes.JsonObject", "System.Collections.Generic.List<string>", "_dictionary")]
-        [DataRow("StructFieldRefAccess", false, "System.Text.Json.Nodes.JsonObject", "System.Collections.Generic.List<string>", "_dictionary")]
+        [DataRow("StructFieldRefAccess", false, "System.Numerics.Vector3", "System.Collections.Generic.List<string>", "X")]
         public async Task FieldRef_MemberTypeObject(string method, bool isCorrect, string objectType, string fieldType, string fieldName)
         {
             await CreateProjectBuilder().WithSourceCode(SourceCode(method, isCorrect, objectType, fieldType, fieldName)).ValidateAsync();
