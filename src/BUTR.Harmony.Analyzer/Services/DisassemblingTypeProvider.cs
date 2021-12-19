@@ -88,7 +88,7 @@ namespace BUTR.Harmony.Analyzer.Services
 
         public virtual SignatureType GetArrayType(SignatureType elementType, ArrayShape shape)
         {
-            return elementType with { IsArray = true, ArrayShape = shape};
+            return elementType with { IsArray = true, ArrayShape = shape };
         }
 
         public virtual SignatureType GetModifiedType(SignatureType modifierType, SignatureType unmodifiedType, bool isRequired)

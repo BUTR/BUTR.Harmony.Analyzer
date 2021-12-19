@@ -18,9 +18,9 @@ namespace BUTR.Harmony.Analyzer.Test.Roslyn
             .AddSystemTextJson()
             .AddSystemMemory();
 
-	    public enum MethodType { Normal, Getter, Setter, Constructor, StaticConstructor }
+        public enum MethodType { Normal, Getter, Setter, Constructor, StaticConstructor }
 
-	    public enum ArgumentType { Normal, Ref, Out, Pointer }
+        public enum ArgumentType { Normal, Ref, Out, Pointer }
 
         public enum MemberTestType
         {
@@ -35,14 +35,14 @@ namespace BUTR.Harmony.Analyzer.Test.Roslyn
 
 
             SeparateTypeOf_SeparateMethodName_MethodType,
-            
+
             SeparateTypeOf_SeparateMethodName,
             SeparateTypeOf_SeparateMethodName_SeparateParamTypes,
             SeparateTypeOf_SeparateMethodName_SeparateParamTypes_ParamVariations,
-            
+
             SeparateTypeOf_SeparateMethodType_ParamTypes,
             SeparateTypeOf_SeparateMethodType_ParamTypes_ParamVariations,
-            
+
             SeparateTypeOf_SeparateMethodType_SeparateParamTypes,
             SeparateTypeOf_SeparateMethodType_SeparateParamTypes_ParamVariations,
             // ReSharper restore InconsistentNaming
@@ -131,14 +131,14 @@ namespace BUTR.Harmony.Analyzer.Test
 
         [DataRow(true, MemberTestType.TypeOf_MethodName, "BUTR.Harmony.Analyzer.Test.TestClass", "_field", MethodType.Normal, new string[] { }, new ArgumentType[] { })]
         [DataRow(true, MemberTestType.TypeOf_MethodName_ParamTypes, "BUTR.Harmony.Analyzer.Test.TestClass", "_field", MethodType.Normal, new[] { "string" }, new ArgumentType[] { })]
-        [DataRow(true, MemberTestType.TypeOf_MethodName_ParamTypes_ParamVariations, "BUTR.Harmony.Analyzer.Test.TestClass", "_method", MethodType.Normal, new [] { "string", "int" }, new[] { ArgumentType.Ref, ArgumentType.Normal })]
-        [DataRow(true, MemberTestType.TypeOf_MethodName_ParamTypes_ParamVariations, "BUTR.Harmony.Analyzer.Test.TestClass", "_method", MethodType.Normal, new [] { "string", "bool" }, new[] { ArgumentType.Out, ArgumentType.Normal })]
-        
+        [DataRow(true, MemberTestType.TypeOf_MethodName_ParamTypes_ParamVariations, "BUTR.Harmony.Analyzer.Test.TestClass", "_method", MethodType.Normal, new[] { "string", "int" }, new[] { ArgumentType.Ref, ArgumentType.Normal })]
+        [DataRow(true, MemberTestType.TypeOf_MethodName_ParamTypes_ParamVariations, "BUTR.Harmony.Analyzer.Test.TestClass", "_method", MethodType.Normal, new[] { "string", "bool" }, new[] { ArgumentType.Out, ArgumentType.Normal })]
+
         [DataRow(true, MemberTestType.SeparateTypeOf_SeparateMethodName_MethodType, "BUTR.Harmony.Analyzer.Test.TestClass", "_property", MethodType.Getter, new string[] { }, new ArgumentType[] { })]
         [DataRow(true, MemberTestType.SeparateTypeOf_SeparateMethodName_MethodType, "BUTR.Harmony.Analyzer.Test.TestClass", "_property", MethodType.Getter, new string[] { }, new ArgumentType[] { })]
         [DataRow(true, MemberTestType.SeparateTypeOf_SeparateMethodName_MethodType, "BUTR.Harmony.Analyzer.Test.TestClass", "_property", MethodType.Setter, new string[] { }, new ArgumentType[] { })]
 
-        [DataRow(true, MemberTestType.SeparateTypeOf_SeparateMethodType_SeparateParamTypes_ParamVariations, "BUTR.Harmony.Analyzer.Test.TestClass", "_method", MethodType.Normal, new [] { "string", "int" }, new[] { ArgumentType.Ref, ArgumentType.Normal })]
+        [DataRow(true, MemberTestType.SeparateTypeOf_SeparateMethodType_SeparateParamTypes_ParamVariations, "BUTR.Harmony.Analyzer.Test.TestClass", "_method", MethodType.Normal, new[] { "string", "int" }, new[] { ArgumentType.Ref, ArgumentType.Normal })]
         public async Task Field_Default(bool isCorrect, MemberTestType testType, string type, string member, MethodType methodType, string[] paramTypes, ArgumentType[] paramVariations)
         {
             await CreateProjectBuilder().WithSourceCode(SourceCode(isCorrect, testType, type, member, methodType, paramTypes, paramVariations)).ValidateAsync();
@@ -176,7 +176,7 @@ namespace BUTR.Harmony.Analyzer.Test
         [DataRow(true, MemberTestType.TypeOf_MethodName, "BUTR.Harmony.Analyzer.Test.TestClass", "_baseProperty", MethodType.Normal, new string[] { }, new ArgumentType[] { })]
         [DataRow(true, MemberTestType.TypeOf_MethodName_ParamTypes, "BUTR.Harmony.Analyzer.Test.TestClass", "_baseMethod", MethodType.Normal, new[] { "string" }, new ArgumentType[] { })]
         [DataRow(true, MemberTestType.TypeOf_MethodName_ParamTypes_ParamVariations, "BUTR.Harmony.Analyzer.Test.TestClass", "_baseMethod", MethodType.Normal, new[] { "string" }, new ArgumentType[] { })]
-        
+
         [DataRow(true, MemberTestType.SeparateTypeOf_SeparateMethodType_SeparateParamTypes_ParamVariations, "BUTR.Harmony.Analyzer.Test.TestClass", "_baseMethod", MethodType.Normal, new[] { "string" }, new ArgumentType[] { })]
         public async Task Field_MemberFromBase(bool isCorrect, MemberTestType testType, string type, string member, MethodType methodType, string[] paramTypes, ArgumentType[] paramVariations)
         {

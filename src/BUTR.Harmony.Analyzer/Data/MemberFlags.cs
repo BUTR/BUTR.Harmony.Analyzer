@@ -11,7 +11,7 @@ namespace BUTR.Harmony.Analyzer.Data
         Field = 4,
         Property = 8,
         Getter = 16,
-        Setter = 32, 
+        Setter = 32,
         Constructor = 64,
         StaticConstructor = 128,
     }

@@ -18,9 +18,9 @@ namespace BUTR.Harmony.Analyzer.Test.Metadata
             .AddSystemTextJson()
             .AddSystemMemory();
 
-	    public enum MethodType { Normal, Getter, Setter, Constructor, StaticConstructor }
+        public enum MethodType { Normal, Getter, Setter, Constructor, StaticConstructor }
 
-	    public enum ArgumentType { Normal, Ref, Out, Pointer }
+        public enum ArgumentType { Normal, Ref, Out, Pointer }
 
         public enum MemberTestType
         {
@@ -35,14 +35,14 @@ namespace BUTR.Harmony.Analyzer.Test.Metadata
 
 
             SeparateTypeOf_SeparateMethodName_MethodType,
-            
+
             SeparateTypeOf_SeparateMethodName,
             SeparateTypeOf_SeparateMethodName_SeparateParamTypes,
             SeparateTypeOf_SeparateMethodName_SeparateParamTypes_ParamVariations,
-            
+
             SeparateTypeOf_SeparateMethodType_ParamTypes,
             SeparateTypeOf_SeparateMethodType_ParamTypes_ParamVariations,
-            
+
             SeparateTypeOf_SeparateMethodType_SeparateParamTypes,
             SeparateTypeOf_SeparateMethodType_SeparateParamTypes_ParamVariations,
             // ReSharper restore InconsistentNaming
@@ -107,14 +107,14 @@ namespace BUTR.Harmony.Analyzer.Test
 
         [DataRow(true, MemberTestType.TypeOf_MethodName, "System.Text.Json.JsonException", "_message", MethodType.Normal, new string[] { }, new ArgumentType[] { })]
         [DataRow(true, MemberTestType.TypeOf_MethodName_ParamTypes, "System.Text.Json.JsonException", "_message", MethodType.Normal, new[] { "string" }, new ArgumentType[] { })]
-        [DataRow(true, MemberTestType.TypeOf_MethodName_ParamTypes_ParamVariations, "System.Text.Json.Utf8JsonReader", "ConsumeNegativeSign", MethodType.Normal, new [] { "ReadOnlySpan<byte>", "int" }, new[] { ArgumentType.Ref, ArgumentType.Ref })]
+        [DataRow(true, MemberTestType.TypeOf_MethodName_ParamTypes_ParamVariations, "System.Text.Json.Utf8JsonReader", "ConsumeNegativeSign", MethodType.Normal, new[] { "ReadOnlySpan<byte>", "int" }, new[] { ArgumentType.Ref, ArgumentType.Ref })]
         [DataRow(true, MemberTestType.TypeOf_MethodName_ParamTypes_ParamVariations, "System.Text.Json.Utf8JsonReader", "TryGetBytesFromBase64", MethodType.Normal, new[] { "byte[]" }, new[] { ArgumentType.Out })]
-        
+
         [DataRow(true, MemberTestType.SeparateTypeOf_SeparateMethodName_MethodType, "System.Text.Json.JsonException", "Message", MethodType.Getter, new string[] { }, new ArgumentType[] { })]
         [DataRow(true, MemberTestType.SeparateTypeOf_SeparateMethodName_MethodType, "System.Text.Json.JsonException", "AppendPathInformation", MethodType.Getter, new string[] { }, new ArgumentType[] { })]
         [DataRow(true, MemberTestType.SeparateTypeOf_SeparateMethodName_MethodType, "System.Text.Json.JsonException", "AppendPathInformation", MethodType.Setter, new string[] { }, new ArgumentType[] { })]
 
-        [DataRow(true, MemberTestType.SeparateTypeOf_SeparateMethodType_SeparateParamTypes_ParamVariations, "System.Text.Json.Utf8JsonReader", "ConsumeNegativeSign", MethodType.Normal, new [] { "ReadOnlySpan<byte>", "int" }, new[] { ArgumentType.Ref, ArgumentType.Ref })]
+        [DataRow(true, MemberTestType.SeparateTypeOf_SeparateMethodType_SeparateParamTypes_ParamVariations, "System.Text.Json.Utf8JsonReader", "ConsumeNegativeSign", MethodType.Normal, new[] { "ReadOnlySpan<byte>", "int" }, new[] { ArgumentType.Ref, ArgumentType.Ref })]
         public async Task Field_Default(bool isCorrect, MemberTestType testType, string type, string member, MethodType methodType, string[] paramTypes, ArgumentType[] paramVariations)
         {
             await CreateProjectBuilder().WithSourceCode(SourceCode(isCorrect, testType, type, member, methodType, paramTypes, paramVariations)).ValidateAsync();
@@ -151,7 +151,7 @@ namespace BUTR.Harmony.Analyzer.Test
         [DataRow(true, MemberTestType.TypeOf_MethodName, "System.Text.Json.Nodes.JsonArray", "_parent", MethodType.Normal, new string[] { }, new ArgumentType[] { })]
         [DataRow(true, MemberTestType.TypeOf_MethodName_ParamTypes, "System.Text.Json.Nodes.JsonArray", "_parent", MethodType.Normal, new[] { "string" }, new ArgumentType[] { })]
         [DataRow(true, MemberTestType.TypeOf_MethodName_ParamTypes_ParamVariations, "System.Text.Json.Nodes.JsonArray", "_parent", MethodType.Normal, new[] { "string" }, new ArgumentType[] { })]
-        
+
         [DataRow(true, MemberTestType.SeparateTypeOf_SeparateMethodType_SeparateParamTypes_ParamVariations, "System.Text.Json.Nodes.JsonArray", "_parent", MethodType.Normal, new[] { "string" }, new ArgumentType[] { })]
         public async Task Field_MemberFromBase(bool isCorrect, MemberTestType testType, string type, string member, MethodType methodType, string[] paramTypes, ArgumentType[] paramVariations)
         {
