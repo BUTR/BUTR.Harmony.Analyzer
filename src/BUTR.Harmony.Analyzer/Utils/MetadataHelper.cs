@@ -271,14 +271,18 @@ namespace BUTR.Harmony.Analyzer.Utils
 
             var typeRefNamespace = metadata.GetString(typeReference.Namespace);
             var typeRefName = metadata.GetString(typeReference.Name);
-            var typeDef = metadataType.TypeDefinitions.Select(metadataType.GetTypeDefinition).FirstOrDefault(typeDef =>
+
+            var nullableTypeDef = metadataType.TypeDefinitions.Select(metadataType.GetTypeDefinition).Cast<TypeDefinition?>().FirstOrDefault(typeDef =>
             {
-                var @namespace = metadataType.GetString(typeDef.Namespace);
-                var name = metadataType.GetString(typeDef.Name);
+                var @namespace = metadataType.GetString(typeDef!.Value.Namespace);
+                var name = metadataType.GetString(typeDef!.Value.Name);
                 return @namespace == typeRefNamespace && name == typeRefName;
             });
 
-            return (typeDef, peReaderType);
+            if (nullableTypeDef is { } typeDef)
+                return (typeDef, peReaderType);
+
+            return null;
         }
     }
 }
