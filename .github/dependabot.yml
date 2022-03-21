@@ -3,8 +3,8 @@ updates:
   - package-ecosystem: "nuget"
     directory: "/"
     ignore:
-      - "Microsoft.CodeAnalysis"
-      - "Microsoft.CodeAnalysis.CSharp.Workspaces"
+      - dependency-name: "Microsoft.CodeAnalysis"
+      - dependency-name: "Microsoft.CodeAnalysis.CSharp.Workspaces"
     schedule:
       interval: "daily"
 
