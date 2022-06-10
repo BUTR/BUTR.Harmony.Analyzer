@@ -1,6 +1,5 @@
 ﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-using System;
 using System.Threading.Tasks;
 
 namespace BUTR.Harmony.Analyzer.Test.Metadata

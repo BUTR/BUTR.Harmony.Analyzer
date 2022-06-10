@@ -2,6 +2,8 @@
 
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
+using System.Threading.Tasks;
+
 using TestHelper;
 
 namespace BUTR.Harmony.Analyzer.Test.Roslyn
