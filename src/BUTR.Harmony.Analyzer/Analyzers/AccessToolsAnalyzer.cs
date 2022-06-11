@@ -30,14 +30,13 @@ namespace BUTR.Harmony.Analyzer.Analyzers
         {
             context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.None);
             context.EnableConcurrentExecution();
-
-            context.RegisterOperationAction(AnalyzeInvocation, OperationKind.Invocation);
             context.RegisterCompilationStartAction(SetMetadataImportOptions);
         }
 
         private static void SetMetadataImportOptions(CompilationStartAnalysisContext context)
         {
             context.Compilation.Options.WithMetadataImportOptions(MetadataImportOptions.All);
+            context.RegisterOperationAction(AnalyzeInvocation, OperationKind.Invocation);
         }
 
         private static void AnalyzeInvocation(OperationAnalysisContext context)
@@ -52,6 +51,27 @@ namespace BUTR.Harmony.Analyzer.Analyzers
 
             var flags = MemberFlags.None;
 
+            if (methodName.Equals("StructFieldRefAccess".AsSpan(), StringComparison.Ordinal))
+            {
+                AnalyzeStructFieldRefAccess(context, operation, invocation);
+                return;
+            }
+            else if (methodName.Equals("StaticFieldRefAccess".AsSpan(), StringComparison.Ordinal))
+            {
+                AnalyzeStaticFieldRefAccess(context, operation, invocation);
+                return;
+            }
+            else if (methodName.Equals("TypeByName".AsSpan(), StringComparison.Ordinal))
+            {
+                AnalyzeTypeByName(context, operation, invocation);
+                return;
+            }
+            
+            if (methodName.StartsWith("Get".AsSpan()))
+            {
+                methodName = methodName.Slice(3);
+            }
+            
             if (methodName.StartsWith("Declared".AsSpan()))
             {
                 flags |= MemberFlags.Declared;
@@ -65,34 +85,91 @@ namespace BUTR.Harmony.Analyzer.Analyzers
 
                 if (!methodName.IsEmpty)
                 {
-                    if (methodName.Equals("Setter".AsSpan(), StringComparison.Ordinal))
+                    if (methodName.StartsWith("Setter".AsSpan(), StringComparison.Ordinal))
+                    {
                         flags |= MemberFlags.Setter;
-                    else if (methodName.Equals("Getter".AsSpan(), StringComparison.Ordinal))
+                        methodName = methodName.Slice(6);
+                    }
+                    else if (methodName.StartsWith("Getter".AsSpan(), StringComparison.Ordinal))
+                    {
                         flags |= MemberFlags.Getter;
+                        methodName = methodName.Slice(6);
+                    }
                 }
-
-                AnalyzeMembers(context, operation, invocation, flags);
             }
-            else if (methodName.Equals("Field".AsSpan(), StringComparison.Ordinal))
+            if (methodName.StartsWith("Field".AsSpan(), StringComparison.Ordinal))
             {
                 flags |= MemberFlags.Field;
-                AnalyzeMembers(context, operation, invocation, flags);
+                methodName = methodName.Slice(5);
             }
-            else if (methodName.Equals("Method".AsSpan(), StringComparison.Ordinal))
+            if (methodName.StartsWith("Method".AsSpan(), StringComparison.Ordinal))
             {
                 flags |= MemberFlags.Method;
-                AnalyzeMembers(context, operation, invocation, flags);
+                methodName = methodName.Slice(6);
             }
-            else if (methodName.Equals("StructFieldRefAccess".AsSpan(), StringComparison.Ordinal))
+            if (methodName.StartsWith("Constructor".AsSpan(), StringComparison.Ordinal))
             {
-                AnalyzeStructFieldRefAccess(context, operation, invocation);
+                flags |= MemberFlags.Constructor;
+                methodName = methodName.Slice(11);
             }
-            else if (methodName.Equals("StaticFieldRefAccess".AsSpan(), StringComparison.Ordinal))
+            if (methodName.StartsWith("Delegate".AsSpan(), StringComparison.Ordinal))
             {
-                AnalyzeStaticFieldRefAccess(context, operation, invocation);
+                flags |= MemberFlags.Delegate;
+                methodName = methodName.Slice(8);
             }
+
+            if (!flags.HasFlag(MemberFlags.Field) &&!flags.HasFlag(MemberFlags.Property) && !flags.HasFlag(MemberFlags.Constructor))
+                flags |= MemberFlags.Method;
+
+            if (flags.HasFlag(MemberFlags.Constructor))
+            {
+                AnalyzeConstructor(context, operation, invocation, flags);
+                return;
+            }
+
+            AnalyzeMembers(context, operation, invocation, flags);
+            return;
         }
 
+        private static void AnalyzeConstructor(OperationAnalysisContext context, IInvocationOperation operation, InvocationExpressionSyntax invocation, MemberFlags memberFlags)
+        {
+            var ctx = new GenericContext(context.Compilation, () => context.Operation.Syntax.GetLocation(), context.ReportDiagnostic);
+
+            if (string.Equals(operation.TargetMethod.Parameters.FirstOrDefault()?.Type.Name, nameof(Type), StringComparison.OrdinalIgnoreCase))
+            {
+                if (invocation.ArgumentList.Arguments.Count < 2) return;
+
+                var typeInfos = RoslynHelper.GetTypeInfos(operation.SemanticModel, invocation.ArgumentList.Arguments[0], context.CancellationToken);
+                if (typeInfos.IsEmpty) return;
+
+                var paramTypes = ImmutableArray<ITypeSymbol>.Empty;
+                if (invocation.ArgumentList.Arguments.Count == 2 && invocation.ArgumentList.Arguments[1].Expression is ArrayCreationExpressionSyntax { Initializer: { } initializer })
+                {
+                    paramTypes = RoslynHelper.GetTypeInfosFromInitializer(operation.SemanticModel, initializer, context.CancellationToken);
+                }
+                
+                MemberHelper.FindAndReportForConstructor(ctx, typeInfos.Select(NameFormatter.ReflectionName).ToImmutableArray(), paramTypes, memberFlags);
+            }
+            else if (string.Equals(operation.TargetMethod.Parameters.FirstOrDefault()?.Type.Name, nameof(String), StringComparison.OrdinalIgnoreCase))
+            {
+                if (invocation.ArgumentList.Arguments.Count < 1) return;
+
+                var typeName = RoslynHelper.GetString(operation.SemanticModel, invocation.ArgumentList.Arguments[0], context.CancellationToken);
+                if (typeName is null) return;
+
+                var paramTypes = ImmutableArray<ITypeSymbol>.Empty;
+                if (invocation.ArgumentList.Arguments.Count == 2)
+                {
+                    if (invocation.ArgumentList.Arguments[1].Expression is ArrayCreationExpressionSyntax { Initializer: { } initializer })
+                    {
+                        paramTypes = RoslynHelper.GetTypeInfosFromInitializer(operation.SemanticModel, initializer, context.CancellationToken);
+                    }
+                }
+                
+                MemberHelper.FindAndReportForConstructor(ctx, ImmutableArray.Create<string>(typeName), paramTypes, memberFlags);
+            }
+        }
+        
         private static void AnalyzeMembers(OperationAnalysisContext context, IInvocationOperation operation, InvocationExpressionSyntax invocation, MemberFlags memberFlags)
         {
             var ctx = new GenericContext(context.Compilation, () => context.Operation.Syntax.GetLocation(), context.ReportDiagnostic);
@@ -105,14 +182,7 @@ namespace BUTR.Harmony.Analyzer.Analyzers
                 var typeInfos = RoslynHelper.GetTypeInfos(operation.SemanticModel, invocation.ArgumentList.Arguments[0], context.CancellationToken);
                 if (typeInfos.IsEmpty) return;
 
-                if (typeInfos.Length > 1)
-                {
-                    MemberHelper.FindAndReportForMembers(ctx, typeInfos, memberFlags, methodName);
-                }
-                else
-                {
-                    MemberHelper.FindAndReportForMember(ctx, typeInfos[0], memberFlags, methodName);
-                }
+                MemberHelper.FindAndReportForMembers(ctx, typeInfos.Select(x => $"{NameFormatter.ReflectionName(x)}:{methodName}").ToImmutableArray(), memberFlags);
             }
             else if (string.Equals(operation.TargetMethod.Parameters.FirstOrDefault()?.Type.Name, nameof(String), StringComparison.OrdinalIgnoreCase))
             {
@@ -121,7 +191,7 @@ namespace BUTR.Harmony.Analyzer.Analyzers
                 var typeSemicolonMember = RoslynHelper.GetString(operation.SemanticModel, invocation.ArgumentList.Arguments[0], context.CancellationToken);
                 if (typeSemicolonMember is null) return;
 
-                MemberHelper.FindAndReportForMember(ctx, typeSemicolonMember, memberFlags);
+                MemberHelper.FindAndReportForMembers(ctx, ImmutableArray.Create<string>(typeSemicolonMember), memberFlags);
             }
         }
 
@@ -166,6 +236,19 @@ namespace BUTR.Harmony.Analyzer.Analyzers
                 var fieldName = RoslynHelper.GetString(operation.SemanticModel, invocation.ArgumentList.Arguments[0], context.CancellationToken);
                 if (fieldName is not null)
                     FieldRefAccessHelper.FindAndReportForFieldRefAccess(ctx, objectType, fieldType, fieldName);
+            }
+        }
+        
+        private static void AnalyzeTypeByName(OperationAnalysisContext context, IInvocationOperation operation, InvocationExpressionSyntax invocation)
+        {
+            var ctx = new GenericContext(context.Compilation, () => context.Operation.Syntax.GetLocation(), context.ReportDiagnostic);
+
+            if (operation.TargetMethod.Parameters.Length == 1 && string.Equals(operation.TargetMethod.Parameters[0].Type.Name, nameof(String), StringComparison.OrdinalIgnoreCase))
+            {
+                var typeName = RoslynHelper.GetString(operation.SemanticModel, invocation.ArgumentList.Arguments[0], context.CancellationToken);
+                if (typeName is null) return;
+
+                MemberHelper.FindAndReportForType(ctx, typeName);
             }
         }
     }

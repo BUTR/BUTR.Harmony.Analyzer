@@ -169,18 +169,5 @@ namespace BUTR.Harmony.Analyzer.Test
         {
             await CreateProjectBuilder().WithSourceCode(SourceCode(isCorrect, testType, type, member, methodType, paramTypes, paramVariations)).ValidateAsync();
         }
-
-
-        [DataTestMethod]
-
-        [DataRow(true, MemberTestType.TypeOf_MethodName, "BUTR.Harmony.Analyzer.Test.TestClass", "_baseProperty", MethodType.Normal, new string[] { }, new ArgumentType[] { })]
-        [DataRow(true, MemberTestType.TypeOf_MethodName_ParamTypes, "BUTR.Harmony.Analyzer.Test.TestClass", "_baseMethod", MethodType.Normal, new[] { "string" }, new ArgumentType[] { })]
-        [DataRow(true, MemberTestType.TypeOf_MethodName_ParamTypes_ParamVariations, "BUTR.Harmony.Analyzer.Test.TestClass", "_baseMethod", MethodType.Normal, new[] { "string" }, new ArgumentType[] { })]
-
-        [DataRow(true, MemberTestType.SeparateTypeOf_SeparateMethodType_SeparateParamTypes_ParamVariations, "BUTR.Harmony.Analyzer.Test.TestClass", "_baseMethod", MethodType.Normal, new[] { "string" }, new ArgumentType[] { })]
-        public async Task Field_MemberFromBase(bool isCorrect, MemberTestType testType, string type, string member, MethodType methodType, string[] paramTypes, ArgumentType[] paramVariations)
-        {
-            await CreateProjectBuilder().WithSourceCode(SourceCode(isCorrect, testType, type, member, methodType, paramTypes, paramVariations)).ValidateAsync();
-        }
     }
 }

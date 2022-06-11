@@ -18,7 +18,9 @@ namespace BUTR.Harmony.Analyzer.Utils
             var disposables = new List<IDisposable>();
             try
             {
-                var checkBase = !memberFlags.HasFlag(MemberFlags.Declared) && !memberFlags.HasFlag(MemberFlags.Constructor) && !memberFlags.HasFlag(MemberFlags.StaticConstructor);
+                memberFlags &= ~MemberFlags.Delegate;
+                
+                var checkBase = !memberFlags.HasFlag(MemberFlags.Declared);
                 memberFlags &= ~MemberFlags.Declared;
 
                 var checkGetter = memberFlags.HasFlag(MemberFlags.Getter);
@@ -32,10 +34,12 @@ namespace BUTR.Harmony.Analyzer.Utils
                 if (checkConstructor)
                 {
                     memberName = ".ctor";
+                    memberFlags |= MemberFlags.Method;
                 }
                 if (checkStaticConstructor)
                 {
                     memberName = ".cctor";
+                    memberFlags |= MemberFlags.Method;
                 }
 
                 var peReader = new PEReader(File.ReadAllBytes(filePath).ToImmutableArray());

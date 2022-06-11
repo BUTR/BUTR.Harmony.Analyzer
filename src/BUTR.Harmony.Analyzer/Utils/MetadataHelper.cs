@@ -41,7 +41,7 @@ namespace BUTR.Harmony.Analyzer.Utils
 
             return null;
         }
-
+        
         public static (FieldDefinition, PEReader)? FindFieldDefinition(Compilation compilation, PEReader reader, TypeDefinition typeDef, bool checkBaseTypes, string fieldName)
         {
             return FindMemberDefinition(compilation, reader, typeDef, checkBaseTypes,

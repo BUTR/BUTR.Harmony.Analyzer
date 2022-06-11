@@ -32,9 +32,9 @@ namespace BUTR.Harmony.Analyzer.Utils
                 {
                     var diagnostics = new Dictionary<MemberFlags, ImmutableArray<Diagnostic>>
                     {
-                        {MemberFlags.Field, DiagnosticsForMember(context, typeSymbol, MemberFlags.Field, memberName, paramTypes, paramVariations).ToImmutableArray()},
-                        {MemberFlags.Property, DiagnosticsForMember(context, typeSymbol, MemberFlags.Property, memberName, paramTypes, paramVariations).ToImmutableArray()},
-                        {MemberFlags.Method, DiagnosticsForMember(context, typeSymbol, MemberFlags.Method, memberName, paramTypes, paramVariations).ToImmutableArray()}
+                        {MemberFlags.Field, DiagnosticsForMember(context, typeSymbol, MemberFlags.Field | MemberFlags.Declared, memberName, paramTypes, paramVariations).ToImmutableArray()},
+                        {MemberFlags.Property, DiagnosticsForMember(context, typeSymbol, MemberFlags.Property | MemberFlags.Declared, memberName, paramTypes, paramVariations).ToImmutableArray()},
+                        {MemberFlags.Method, DiagnosticsForMember(context, typeSymbol, MemberFlags.Method | MemberFlags.Declared, memberName, paramTypes, paramVariations).ToImmutableArray()}
                     };
                     // If every type has an error, display all of them
                     // If at least one type held the value, we are correct
@@ -50,7 +50,7 @@ namespace BUTR.Harmony.Analyzer.Utils
                 case MethodType.Getter:
                 case MethodType.Setter:
                 {
-                    foreach (var diagnostic in DiagnosticsForMember(context, typeSymbol, MemberFlags.Property | GetForProperty(methodType), memberName, paramTypes, paramVariations))
+                    foreach (var diagnostic in DiagnosticsForMember(context, typeSymbol, MemberFlags.Property | GetForProperty(methodType) | MemberFlags.Declared, memberName, paramTypes, paramVariations))
                     {
                         context.ReportDiagnostic(diagnostic);
                     }
@@ -59,7 +59,7 @@ namespace BUTR.Harmony.Analyzer.Utils
                 case MethodType.Constructor:
                 case MethodType.StaticConstructor:
                 {
-                    foreach (var diagnostic in DiagnosticsForMember(context, typeSymbol, MemberFlags.Method | GetForMethod(methodType), memberName, paramTypes, paramVariations))
+                    foreach (var diagnostic in DiagnosticsForMember(context, typeSymbol, MemberFlags.Method | GetForMethod(methodType) | MemberFlags.Declared, memberName, paramTypes, paramVariations))
                     {
                         context.ReportDiagnostic(diagnostic);
                     }
@@ -68,12 +68,22 @@ namespace BUTR.Harmony.Analyzer.Utils
             }
         }
 
-        public static void FindAndReportForMembers(GenericContext context, ImmutableArray<ITypeSymbol> typeSymbols, MemberFlags memberFlags, string memberName)
+        public static void FindAndReportForMembers(GenericContext context, ImmutableArray<string> typeSemicolonMembers, MemberFlags memberFlags)
         {
             var diagnostics = new Dictionary<ITypeSymbol, ImmutableArray<Diagnostic>>();
-            foreach (var typeSymbol in typeSymbols)
+            foreach (var typeSemicolonMember in typeSemicolonMembers)
             {
-                diagnostics.Add(typeSymbol, DiagnosticsForMember(context, typeSymbol, memberFlags, memberName, null, null).ToImmutableArray());
+                var split = typeSemicolonMember.Split(':');
+                var typeName = split[0];
+                var memberName = split[1];
+                
+                var type = FindAndReportForType(context, typeName);
+                if (type is null)
+                {
+                    return;
+                }
+                
+                diagnostics.Add(type, DiagnosticsForMember(context, type, memberFlags, memberName, null, null).ToImmutableArray());
             }
 
             // If every type has an error, display all of them
@@ -87,31 +97,41 @@ namespace BUTR.Harmony.Analyzer.Utils
             }
         }
 
-        public static void FindAndReportForMember(GenericContext context, ITypeSymbol typeSymbol, MemberFlags memberFlags, string memberName)
+        public static void FindAndReportForConstructor(GenericContext context, ImmutableArray<string> typeNames, ImmutableArray<ITypeSymbol> paramTypes, MemberFlags memberFlags)
         {
-            foreach (var diagnostic in DiagnosticsForMember(context, typeSymbol, memberFlags, memberName, null, null))
+            var diagnostics = new Dictionary<ITypeSymbol, ImmutableArray<Diagnostic>>();
+            foreach (var typeName in typeNames)
             {
-                context.ReportDiagnostic(diagnostic);
+                var type = FindAndReportForType(context, typeName);
+                if (type is null)
+                {
+                    continue;
+                }
+                
+                diagnostics.Add(type, DiagnosticsForMember(context, type, memberFlags, string.Empty, paramTypes, null).ToImmutableArray());
+            }
+
+            // If every type has an error, display all of them
+            // If at least one type held the value, we are correct
+            if (diagnostics.All(kv => !kv.Value.IsEmpty))
+            {
+                foreach (var diagnostic in diagnostics.Values.SelectMany(x => x))
+                {
+                    context.ReportDiagnostic(diagnostic);
+                }
             }
         }
-
-        public static void FindAndReportForMember(GenericContext context, string typeSemicolonMember, MemberFlags memberFlags)
+        
+        public static INamedTypeSymbol? FindAndReportForType(GenericContext context, string typeName)
         {
-            var split = typeSemicolonMember.Split(':');
-            var typeName = split[0];
-            var memberName = split[1];
-
             var type = context.Compilation.GetAssemblies().Select(a => a.GetTypeByMetadataName(typeName)).FirstOrDefault(t => t is not null);
             if (type is null)
             {
                 context.ReportDiagnostic(RuleIdentifiers.ReportType(context, typeName));
-                return;
+                return null;
             }
 
-            foreach (var diagnostic in DiagnosticsForMember(context, type, memberFlags, memberName, null, null))
-            {
-                context.ReportDiagnostic(diagnostic);
-            }
+            return type;
         }
 
 

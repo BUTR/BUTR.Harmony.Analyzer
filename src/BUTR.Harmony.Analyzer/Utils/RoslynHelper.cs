@@ -38,6 +38,26 @@ namespace BUTR.Harmony.Analyzer.Utils
             return ImmutableArray.Create(type.Type);
         }
 
+        public static ImmutableArray<ITypeSymbol> GetTypeInfosFromInitializer(SemanticModel? semanticModel, InitializerExpressionSyntax initializer, CancellationToken ct)
+        {
+            var builder = ImmutableArray.CreateBuilder<ITypeSymbol>(initializer.Expressions.Count);
+            for (var i = 0; i < initializer.Expressions.Count; i++)
+            {
+                if (initializer.Expressions[i] is not TypeOfExpressionSyntax expression)
+                {
+                    return ImmutableArray<ITypeSymbol>.Empty;
+                }
+                
+                var type = semanticModel.GetTypeInfo(expression.Type, ct);
+                if (type.Type is INamedTypeSymbol namedTypeSymbol)
+                {
+                    builder.Add(namedTypeSymbol);
+                }
+            }
+
+            return builder.ToImmutable();
+        }
+        
         public static string? GetString(SemanticModel? semanticModel, ArgumentSyntax argument, CancellationToken ct)
         {
             if (semanticModel is null)

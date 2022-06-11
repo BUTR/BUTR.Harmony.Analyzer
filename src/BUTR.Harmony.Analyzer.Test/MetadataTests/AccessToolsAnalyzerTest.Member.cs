@@ -6,7 +6,7 @@ namespace BUTR.Harmony.Analyzer.Test.Metadata
 {
     public partial class AccessToolsAnalyzerTest
     {
-        public enum MemberTestType { TypeOf, String }
+        public enum MemberTestType { TypeOf, String, TypeOfOnly, StringOnly }
 
         private static string SourceCode(string method, bool isCorrect, MemberTestType testType, string type, string member) => @$"
 {HarmonyBase}
@@ -27,6 +27,8 @@ namespace BUTR.Harmony.Analyzer.Test
         {
             MemberTestType.TypeOf => $"typeof({type}), \"{member}\"",
             MemberTestType.String => $"\"{type}:{member}\"",
+            MemberTestType.TypeOfOnly => $"typeof({type}), new System.Type[] {{ {member} }}",
+            MemberTestType.StringOnly => $"\"{type}\", new System.Type[] {{ {member} }}",
             _ => ""
         };
 
@@ -196,6 +198,34 @@ namespace BUTR.Harmony.Analyzer.Test
         [DataRow("Method", false, MemberTestType.String, "NonExistingType", "NonExistingMethod")]
         [DataRow("DeclaredMethod", false, MemberTestType.String, "NonExistingType", "NonExistingMethod")]
         public async Task Method_Type(string method, bool isCorrect, MemberTestType testType, string type, string member)
+        {
+            await CreateProjectBuilder().WithSourceCode(SourceCode(method, isCorrect, testType, type, member)).ValidateAsync();
+        }
+        
+        ///
+        
+        [DataTestMethod]
+        [DataRow("Constructor", true, MemberTestType.TypeOfOnly, "System.Text.Json.JsonException", "typeof(string)")]
+        [DataRow("DeclaredConstructor", true, MemberTestType.TypeOfOnly, "System.Text.Json.JsonException", "typeof(string)")]
+        [DataRow("DeclaredConstructor", true, MemberTestType.StringOnly, "System.Text.Json.JsonException", "typeof(string)")]
+        [DataRow("DeclaredConstructor", false, MemberTestType.TypeOfOnly, "System.Text.Json.JsonException", "typeof(int)")]
+        [DataRow("DeclaredConstructor", false, MemberTestType.StringOnly, "System.Text.Json.JsonException", "typeof(int)")]
+        public async Task Constructor_Default(string method, bool isCorrect, MemberTestType testType, string type, string member)
+        {
+            await CreateProjectBuilder().WithSourceCode(SourceCode(method, isCorrect, testType, type, member)).ValidateAsync();
+        }
+        
+        [DataTestMethod]
+        [DataRow("DeclaredConstructor", false, MemberTestType.TypeOfOnly, "System.Text.Json.Nodes.JsonArray", "typeof(string)")]
+        [DataRow("DeclaredConstructor", false, MemberTestType.StringOnly, "System.Text.Json.Nodes.JsonArray", "typeof(string)")]
+        public async Task Constructor_MemberFromBase(string method, bool isCorrect, MemberTestType testType, string type, string member)
+        {
+            await CreateProjectBuilder().WithSourceCode(SourceCode(method, isCorrect, testType, type, member)).ValidateAsync();
+        }
+
+        [DataTestMethod]
+        [DataRow("DeclaredConstructor", false, MemberTestType.StringOnly, "NonExistingType", "typeof(int)")]
+        public async Task Constructor_Type(string method, bool isCorrect, MemberTestType testType, string type, string member)
         {
             await CreateProjectBuilder().WithSourceCode(SourceCode(method, isCorrect, testType, type, member)).ValidateAsync();
         }

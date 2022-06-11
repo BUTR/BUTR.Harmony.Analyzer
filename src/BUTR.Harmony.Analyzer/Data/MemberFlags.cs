@@ -14,5 +14,6 @@ namespace BUTR.Harmony.Analyzer.Data
         Setter = 32,
         Constructor = 64,
         StaticConstructor = 128,
+        Delegate = 256,
     }
 }

@@ -11,7 +11,9 @@ namespace BUTR.Harmony.Analyzer.Utils
     {
         public static IEnumerable<Diagnostic> FindMember(GenericContext context, ITypeSymbol typeSymbol, MemberFlags memberFlags, string memberName, ImmutableArray<ITypeSymbol>? paramTypes, ImmutableArray<ArgumentType>? paramVariations)
         {
-            var checkBase = !memberFlags.HasFlag(MemberFlags.Declared) && !memberFlags.HasFlag(MemberFlags.Constructor) && !memberFlags.HasFlag(MemberFlags.StaticConstructor);
+            memberFlags &= ~MemberFlags.Delegate;
+            
+            var checkBase = !memberFlags.HasFlag(MemberFlags.Declared);
             memberFlags &= ~MemberFlags.Declared;
 
             var searchType = typeSymbol;
@@ -51,10 +53,12 @@ namespace BUTR.Harmony.Analyzer.Utils
             if (checkConstructor)
             {
                 memberName = ".ctor";
+                memberFlags |= MemberFlags.Method;
             }
             if (checkStaticConstructor)
             {
                 memberName = ".cctor";
+                memberFlags |= MemberFlags.Method;
             }
 
             foreach (var member in typeSymbol.GetMembers(memberName))
