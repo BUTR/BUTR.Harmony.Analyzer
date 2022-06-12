@@ -145,13 +145,11 @@ namespace BUTR.Harmony.Analyzer.Utils
                     yield break;
                 }
 
-                var objectTypeName = NameFormatter.ReflectionName(objectType);
-                
                 var fieldDefinitionTypeSignature = objectFieldDefinition.DecodeSignature(new DisassemblingTypeProvider(), DisassemblingGenericContext.Empty);
                 var fieldDefinitionTypeName = NameFormatter.ReflectionName(fieldDefinitionTypeSignature);
 
                 var fieldTypeName = NameFormatter.ReflectionName(fieldType);
-                if (!fieldTypeName.Equals(fieldDefinitionTypeName, StringComparison.Ordinal) && !objectTypeName.Equals("System.Object", StringComparison.Ordinal))
+                if (!fieldTypeName.Equals(fieldDefinitionTypeName, StringComparison.Ordinal) && !fieldTypeName.Equals("System.Object", StringComparison.Ordinal))
                 {
                     yield return RuleIdentifiers.ReportWrongType(context, NameFormatter.ReflectionName(objectType), fieldTypeName, fieldDefinitionTypeName);
                     yield break;

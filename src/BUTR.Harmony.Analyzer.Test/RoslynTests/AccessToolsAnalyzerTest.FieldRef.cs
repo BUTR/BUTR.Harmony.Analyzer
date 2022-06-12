@@ -105,5 +105,25 @@ namespace BUTR.Harmony.Analyzer.Test
         {
             await CreateProjectBuilder().WithSourceCode(SourceCode(method, isCorrect, testType, objectType, fieldType, fieldName)).ValidateAsync();
         }
+        
+        [DataTestMethod]
+        [DataRow("FieldRefAccess", true, FieldRefTestType.Type, "BUTR.Harmony.Analyzer.Test.TestClass", "string", "_field")]
+        [DataRow("FieldRefAccess", true, FieldRefTestType.String, "BUTR.Harmony.Analyzer.Test.TestClass", "string", "_field")]
+        [DataRow("StaticFieldRefAccess", true, FieldRefTestType.Type, "BUTR.Harmony.Analyzer.Test.TestClass", "string", "_staticField")]
+        [DataRow("StaticFieldRefAccess", true, FieldRefTestType.String, "BUTR.Harmony.Analyzer.Test.TestClass", "string", "_staticField")]
+        
+        [DataRow("FieldRefAccess", false, FieldRefTestType.Type, "BUTR.Harmony.Analyzer.Test.TestClass", "int", "_field")]
+        [DataRow("FieldRefAccess", false, FieldRefTestType.String, "BUTR.Harmony.Analyzer.Test.TestClass", "int", "_field")]
+        [DataRow("StaticFieldRefAccess", false, FieldRefTestType.Type, "BUTR.Harmony.Analyzer.Test.TestClass", "int", "_staticField")]
+        [DataRow("StaticFieldRefAccess", false, FieldRefTestType.String, "BUTR.Harmony.Analyzer.Test.TestClass", "int", "_staticField")]
+        
+        [DataRow("FieldRefAccess", true, FieldRefTestType.Type, "BUTR.Harmony.Analyzer.Test.TestClass", "object", "_field")]
+        [DataRow("FieldRefAccess", true, FieldRefTestType.String, "BUTR.Harmony.Analyzer.Test.TestClass", "object", "_field")]
+        [DataRow("StaticFieldRefAccess", true, FieldRefTestType.Type, "BUTR.Harmony.Analyzer.Test.TestClass", "object", "_staticField")]
+        [DataRow("StaticFieldRefAccess", true, FieldRefTestType.String, "BUTR.Harmony.Analyzer.Test.TestClass", "object", "_staticField")]
+        public async Task FieldRef_MemberWrongType(string method, bool isCorrect, FieldRefTestType testType, string objectType, string fieldType, string fieldName)
+        {
+            await CreateProjectBuilder().WithSourceCode(SourceCode(method, isCorrect, testType, objectType, fieldType, fieldName)).ValidateAsync();
+        }
     }
 }

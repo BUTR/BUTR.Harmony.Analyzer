@@ -137,11 +137,9 @@ namespace BUTR.Harmony.Analyzer.Utils
                         yield break;
                     }
                     
-                    var objectTypeName = NameFormatter.ReflectionName(objectType);
-
                     var fieldTypeName = NameFormatter.ReflectionName(fieldType);
                     var fieldSymbolName = NameFormatter.ReflectionName(fieldSymbol.Type);
-                    if (!string.Equals(fieldTypeName, fieldSymbolName)  && !objectTypeName.Equals("System.Object", StringComparison.Ordinal))
+                    if (!string.Equals(fieldTypeName, fieldSymbolName)  && !fieldTypeName.Equals("System.Object", StringComparison.Ordinal))
                     {
                         yield return RuleIdentifiers.ReportWrongType(context, NameFormatter.ReflectionName(objectType), fieldTypeName, fieldSymbolName);
                         yield break;
