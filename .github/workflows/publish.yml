@@ -30,12 +30,12 @@ jobs:
 
     - name: Build
       run: >-
-        dotnet build src/Bannerlord.HarmonyAnalyzer.sln --configuration Release;
+        dotnet build src/BUTR.HarmonyAnalyzer.sln --configuration Release;
       shell: pwsh
 
     - name: Pack
       run: >-
-        dotnet pack src/Bannerlord.HarmonyAnalyzer.sln --configuration Release -o "./packages";
+        dotnet pack src/BUTR.HarmonyAnalyzer.sln --configuration Release -o "./packages";
       shell: pwsh
 
     - name: Push to NuGet
