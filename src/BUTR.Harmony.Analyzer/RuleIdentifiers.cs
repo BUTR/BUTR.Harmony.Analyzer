@@ -17,6 +17,8 @@ namespace BUTR.Harmony.Analyzer
         public const string WrongType = "BHA0006";
         public const string MissingConstructor = "BHA0007";
         public const string MissingStaticConstructor = "BHA0008";
+        public const string NotInstanceField = "BHA0009";
+        public const string NotStaticField = "BHA0010";
 
         private static string GetHelpUri(string idenfifier) =>
             string.Format(CultureInfo.InvariantCulture, "https://github.com/BUTR/BUTR.Harmony.Analyzer/blob/master/docs/Rules/{0}.md", idenfifier);
@@ -102,6 +104,26 @@ namespace BUTR.Harmony.Analyzer
             isEnabledByDefault: true,
             description: "",
             helpLinkUri: GetHelpUri(MissingStaticConstructor));
+        
+        internal static readonly DiagnosticDescriptor NotInstanceFieldRule = new(
+            MissingStaticConstructor,
+            title: "Field is static",
+            messageFormat: "Field '{0}' is static",
+            RuleCategories.Usage,
+            DiagnosticSeverity.Warning,
+            isEnabledByDefault: true,
+            description: "",
+            helpLinkUri: GetHelpUri(NotInstanceField));
+        
+        internal static readonly DiagnosticDescriptor NotStaticFieldRule = new(
+            MissingStaticConstructor,
+            title: "Field is not static",
+            messageFormat: "Field '{0}' is not static",
+            RuleCategories.Usage,
+            DiagnosticSeverity.Warning,
+            isEnabledByDefault: true,
+            description: "",
+            helpLinkUri: GetHelpUri(NotStaticField));
 
         internal static Diagnostic ReportAssembly(GenericContext context, string assemblyName, string typeName) =>
             DiagnosticUtils.CreateDiagnostic(AssemblyRule, context, assemblyName, typeName);
@@ -126,5 +148,11 @@ namespace BUTR.Harmony.Analyzer
 
         internal static Diagnostic ReportMissingStaticConstructor(GenericContext context, string typeName) =>
             DiagnosticUtils.CreateDiagnostic(StaticConstructorRule, context, typeName);
+        
+        internal static Diagnostic ReportNotInstanceField(GenericContext context, string fieldName) =>
+            DiagnosticUtils.CreateDiagnostic(NotInstanceFieldRule, context, fieldName);
+        
+        internal static Diagnostic ReportNotStaticField(GenericContext context, string fieldName) =>
+            DiagnosticUtils.CreateDiagnostic(NotStaticFieldRule, context, fieldName);
     }
 }

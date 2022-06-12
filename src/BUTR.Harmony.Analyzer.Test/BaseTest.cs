@@ -51,8 +51,8 @@ namespace HarmonyLib
         public static object DeclaredField(Type type, string name, Type[]? parameters = null, Type[]? generics = null) => null;
         public static object Field(Type type, string name, Type[]? parameters = null, Type[]? generics = null) => null;
 
-        public static object DeclaredField(string typeColonMethodname, Type[]? parameters = null, Type[]? generics = null) => null;
-        public static object Field(string typeColonMethodname, Type[]? parameters = null, Type[]? generics = null) => null;
+        public static object DeclaredField(string typeColonFieldname, Type[]? parameters = null, Type[]? generics = null) => null;
+        public static object Field(string typeColonFieldname, Type[]? parameters = null, Type[]? generics = null) => null;
 
 
         public static object DeclaredProperty(Type type, string name) => null;
@@ -135,9 +135,14 @@ namespace HarmonyLib
         public static object GetDelegate<TDelegate>(object? instance, string typeSemicolonMethod, Type[]? parameters = null, Type[]? generics = null) where TDelegate : Delegate => null;
 
 
+        public static object FieldRefAccess<T, F>(string fieldName) => null;
+        public static object FieldRefAccess<F>(string typeColonFieldname) => null;
+
         public static object StaticFieldRefAccess<T, F>(string fieldName) => null;
+        public static object StaticFieldRefAccess<F>(string typeColonFieldname) => null;
 
         public static object StructFieldRefAccess<T, F>(string fieldName) where T: struct => null;
+        public static object StructFieldRefAccess<F>(string typeColonFieldname) => null;
     }
 }
 ";

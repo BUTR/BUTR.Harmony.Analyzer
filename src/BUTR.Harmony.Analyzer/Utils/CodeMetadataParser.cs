@@ -7,6 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
+using System.Reflection;
 using System.Reflection.PortableExecutable;
 
 namespace BUTR.Harmony.Analyzer.Utils
@@ -103,7 +104,7 @@ namespace BUTR.Harmony.Analyzer.Utils
             }
         }
 
-        public static IEnumerable<Diagnostic> FindMemberAndCheckType(GenericContext context, string filePath, ITypeSymbol objectType, ITypeSymbol fieldType, string fieldName)
+        public static IEnumerable<Diagnostic> FindMemberAndCheckType(GenericContext context, string filePath, ITypeSymbol objectType, ITypeSymbol fieldType, string fieldName, bool staticCheck)
         {
             var disposables = new List<IDisposable>();
             try
@@ -132,6 +133,18 @@ namespace BUTR.Harmony.Analyzer.Utils
                 }
                 if (disposables.Contains(objectFieldReader)) disposables.Add(objectFieldReader);
 
+                if (!staticCheck && objectFieldDefinition.Attributes.HasFlag(FieldAttributes.Static))
+                {
+                    yield return RuleIdentifiers.ReportNotInstanceField(context, fieldName);
+                    yield break;
+                }
+            
+                if (staticCheck && !objectFieldDefinition.Attributes.HasFlag(FieldAttributes.Static))
+                {
+                    yield return RuleIdentifiers.ReportNotStaticField(context, fieldName);
+                    yield break;
+                }
+                
                 var fieldDefinitionTypeSignature = objectFieldDefinition.DecodeSignature(new DisassemblingTypeProvider(), DisassemblingGenericContext.Empty);
                 var fieldDefinitionTypeName = NameFormatter.ReflectionName(fieldDefinitionTypeSignature);
 

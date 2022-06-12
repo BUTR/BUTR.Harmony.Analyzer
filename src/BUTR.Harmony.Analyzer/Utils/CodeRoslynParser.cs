@@ -111,7 +111,7 @@ namespace BUTR.Harmony.Analyzer.Utils
             yield return RuleIdentifiers.ReportMember(context, NameFormatter.ReflectionName(typeSymbol), memberName);
         }
 
-        public static IEnumerable<Diagnostic> FindMemberAndCheckType(GenericContext context, ITypeSymbol objectType, ITypeSymbol fieldType, string fieldName)
+        public static IEnumerable<Diagnostic> FindMemberAndCheckType(GenericContext context, ITypeSymbol objectType, ITypeSymbol fieldType, string fieldName, bool staticCheck)
         {
             while (true)
             {
@@ -121,6 +121,18 @@ namespace BUTR.Harmony.Analyzer.Utils
                     if (member is not IFieldSymbol fieldSymbol)
                     {
                         yield return RuleIdentifiers.ReportMember(context, NameFormatter.ReflectionName(objectType), fieldName);
+                        yield break;
+                    }
+                    
+                    if (!staticCheck && member.IsStatic)
+                    {
+                        yield return RuleIdentifiers.ReportNotInstanceField(context, fieldName);
+                        yield break;
+                    }
+            
+                    if (staticCheck && !member.IsStatic)
+                    {
+                        yield return RuleIdentifiers.ReportNotStaticField(context, fieldName);
                         yield break;
                     }
 
