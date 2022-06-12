@@ -2,6 +2,7 @@
 
 using Microsoft.CodeAnalysis;
 
+using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 
@@ -135,10 +136,12 @@ namespace BUTR.Harmony.Analyzer.Utils
                         yield return RuleIdentifiers.ReportNotStaticField(context, fieldName);
                         yield break;
                     }
+                    
+                    var objectTypeName = NameFormatter.ReflectionName(objectType);
 
                     var fieldTypeName = NameFormatter.ReflectionName(fieldType);
                     var fieldSymbolName = NameFormatter.ReflectionName(fieldSymbol.Type);
-                    if (!string.Equals(fieldTypeName, fieldSymbolName))
+                    if (!string.Equals(fieldTypeName, fieldSymbolName)  && !objectTypeName.Equals("System.Object", StringComparison.Ordinal))
                     {
                         yield return RuleIdentifiers.ReportWrongType(context, NameFormatter.ReflectionName(objectType), fieldTypeName, fieldSymbolName);
                         yield break;
