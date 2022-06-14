@@ -7,6 +7,8 @@ using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.Operations;
 
 using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 
@@ -15,6 +17,8 @@ namespace BUTR.Harmony.Analyzer.Analyzers
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
     public class AccessToolsAnalyzer : DiagnosticAnalyzer
     {
+        private readonly ConcurrentBag<Location> _ignoredLocations = new();
+
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => ImmutableArray.Create(
             RuleIdentifiers.MemberRule,
             RuleIdentifiers.AssemblyRule,
@@ -33,43 +37,107 @@ namespace BUTR.Harmony.Analyzer.Analyzers
             context.RegisterCompilationStartAction(SetMetadataImportOptions);
         }
 
-        private static void SetMetadataImportOptions(CompilationStartAnalysisContext context)
+        private void SetMetadataImportOptions(CompilationStartAnalysisContext context)
         {
             context.Compilation.Options.WithMetadataImportOptions(MetadataImportOptions.All);
+            context.RegisterOperationAction(AnalyzeVariableDeclarator, OperationKind.VariableDeclarator);
             context.RegisterOperationAction(AnalyzeInvocation, OperationKind.Invocation);
         }
 
-        private static void AnalyzeInvocation(OperationAnalysisContext context)
+        private void AnalyzeVariableDeclarator(OperationAnalysisContext context)
         {
-            var operation = (IInvocationOperation) context.Operation;
+            var variableDeclaratorOperation = (IVariableDeclaratorOperation) context.Operation;
+            
+            if (variableDeclaratorOperation.GetVariableInitializer() is not { } variableInitializerOperation) return;
 
-            if (operation.Syntax is not InvocationExpressionSyntax invocation) return;
+            if (variableInitializerOperation.Value is not ICoalesceOperation coalesceOperation) return;
 
-            if (!operation.TargetMethod.ContainingType.Name.StartsWith("AccessTools", StringComparison.Ordinal)) return;
+            var diagnostics = new Dictionary<IInvocationOperation, ImmutableArray<Diagnostic>>();
+            foreach (var invocationOperation in GetAllInvocations(coalesceOperation))
+            {
+                diagnostics[invocationOperation] = AnalyzeInvocationAndReport(context, invocationOperation);
+            }
+            
+            // If every invocation has an error, display all of them
+            // If at least one type found the method, we are correct
+            if (diagnostics.All(kv => !kv.Value.IsEmpty))
+            {
+                foreach (var diagnostic in diagnostics.Values.SelectMany(x => x))
+                {
+                    context.ReportDiagnostic(diagnostic);
+                }
+            }
+            
+            // Do not analyze the invocations again again
+            foreach (var operation in diagnostics.Keys)
+            {
+                _ignoredLocations.Add(operation.Syntax.GetLocation());
+            }
+        }
 
-            var methodName = operation.TargetMethod.Name.AsSpan();
+        private static IEnumerable<IInvocationOperation> GetAllInvocations(ICoalesceOperation coalesceOperation)
+        {
+            foreach (var operationChild in coalesceOperation.Children)
+            {
+                if (operationChild is IInvocationOperation childInvocationOperand)
+                {
+                    yield return childInvocationOperand;
+                }
+                if (operationChild is ICoalesceOperation childCoalesceOperation)
+                {
+                    foreach (var invocationOperation in GetAllInvocations(childCoalesceOperation))
+                    {
+                        yield return invocationOperation;
+                    }
+                }
+            }
+        }
+
+        // Analyzes all invocations, they can 
+        private void AnalyzeInvocation(OperationAnalysisContext context)
+        {
+            if (context.Operation is not IInvocationOperation invocationOperation) return;
+
+            if (_ignoredLocations.Contains(invocationOperation.Syntax.GetLocation())) return;                
+            
+            foreach (var diagnotic in AnalyzeInvocationAndReport(context, invocationOperation))
+            {
+                context.ReportDiagnostic(diagnotic);
+            }
+        }
+        
+        private static ImmutableArray<Diagnostic> AnalyzeInvocationAndReport(OperationAnalysisContext context, IInvocationOperation invocationOperation)
+        {
+            if (invocationOperation.Syntax is not InvocationExpressionSyntax invocation) return ImmutableArray<Diagnostic>.Empty;
+
+            if (!invocationOperation.TargetMethod.ContainingType.Name.StartsWith("AccessTools", StringComparison.Ordinal)) return ImmutableArray<Diagnostic>.Empty;
+
+            var diagnostics = ImmutableArray.CreateBuilder<Diagnostic>();
+            var ctx = new GenericContext(context.Compilation, () => invocationOperation.Syntax.GetLocation(), diagnostic => diagnostics.Add(diagnostic));
+
+            var methodName = invocationOperation.TargetMethod.Name.AsSpan();
 
             var flags = MemberFlags.None;
 
             if (methodName.Equals("FieldRefAccess".AsSpan(), StringComparison.Ordinal))
             {
-                AnalyzeFieldRefAccess(context, operation, invocation);
-                return;
+                AnalyzeFieldRefAccess(ctx, context, invocationOperation, invocation);
+                return diagnostics.ToImmutable();
             }
             else if (methodName.Equals("StructFieldRefAccess".AsSpan(), StringComparison.Ordinal))
             {
-                AnalyzeStructFieldRefAccess(context, operation, invocation);
-                return;
+                AnalyzeStructFieldRefAccess(ctx, context, invocationOperation, invocation);
+                return diagnostics.ToImmutable();
             }
             else if (methodName.Equals("StaticFieldRefAccess".AsSpan(), StringComparison.Ordinal))
             {
-                AnalyzeStaticFieldRefAccess(context, operation, invocation);
-                return;
+                AnalyzeStaticFieldRefAccess(ctx, context, invocationOperation, invocation);
+                return diagnostics.ToImmutable();
             }
             else if (methodName.Equals("TypeByName".AsSpan(), StringComparison.Ordinal))
             {
-                AnalyzeTypeByName(context, operation, invocation);
-                return;
+                AnalyzeTypeByName(ctx, context, invocationOperation, invocation);
+                return diagnostics.ToImmutable();
             }
             
             if (methodName.StartsWith("Get".AsSpan()))
@@ -128,18 +196,16 @@ namespace BUTR.Harmony.Analyzer.Analyzers
 
             if (flags.HasFlag(MemberFlags.Constructor))
             {
-                AnalyzeConstructor(context, operation, invocation, flags);
-                return;
+                AnalyzeConstructor(ctx, context, invocationOperation, invocation, flags);
+                return diagnostics.ToImmutable();
             }
 
-            AnalyzeMembers(context, operation, invocation, flags);
-            return;
+            AnalyzeMembers(ctx, context, invocationOperation, invocation, flags);
+            return diagnostics.ToImmutable();
         }
 
-        private static void AnalyzeConstructor(OperationAnalysisContext context, IInvocationOperation operation, InvocationExpressionSyntax invocation, MemberFlags memberFlags)
+        private static void AnalyzeConstructor(GenericContext ctx, OperationAnalysisContext context, IInvocationOperation operation, InvocationExpressionSyntax invocation, MemberFlags memberFlags)
         {
-            var ctx = new GenericContext(context.Compilation, () => context.Operation.Syntax.GetLocation(), context.ReportDiagnostic);
-
             if (string.Equals(operation.TargetMethod.Parameters.FirstOrDefault()?.Type.Name, nameof(Type), StringComparison.OrdinalIgnoreCase))
             {
                 if (invocation.ArgumentList.Arguments.Count < 2) return;
@@ -175,10 +241,8 @@ namespace BUTR.Harmony.Analyzer.Analyzers
             }
         }
         
-        private static void AnalyzeMembers(OperationAnalysisContext context, IInvocationOperation operation, InvocationExpressionSyntax invocation, MemberFlags memberFlags)
+        private static void AnalyzeMembers(GenericContext ctx, OperationAnalysisContext context, IInvocationOperation operation, InvocationExpressionSyntax invocation, MemberFlags memberFlags)
         {
-            var ctx = new GenericContext(context.Compilation, () => context.Operation.Syntax.GetLocation(), context.ReportDiagnostic);
-
             if (string.Equals(operation.TargetMethod.Parameters.FirstOrDefault()?.Type.Name, nameof(Type), StringComparison.OrdinalIgnoreCase))
             {
                 if (invocation.ArgumentList.Arguments.Count < 2) return;
@@ -200,10 +264,8 @@ namespace BUTR.Harmony.Analyzer.Analyzers
             }
         }
 
-        private static void AnalyzeFieldRefAccess(OperationAnalysisContext context, IInvocationOperation operation, InvocationExpressionSyntax invocation)
+        private static void AnalyzeFieldRefAccess(GenericContext ctx, OperationAnalysisContext context, IInvocationOperation operation, InvocationExpressionSyntax invocation)
         {
-            var ctx = new GenericContext(context.Compilation, () => context.Operation.Syntax.GetLocation(), context.ReportDiagnostic);
-
             if (operation.TargetMethod.Arity == 1)
             {
                 if (operation.TargetMethod.Parameters.Length == 1 && string.Equals(operation.TargetMethod.Parameters[0].Type.Name, nameof(String), StringComparison.OrdinalIgnoreCase))
@@ -231,10 +293,8 @@ namespace BUTR.Harmony.Analyzer.Analyzers
             }
         }
         
-        private static void AnalyzeStaticFieldRefAccess(OperationAnalysisContext context, IInvocationOperation operation, InvocationExpressionSyntax invocation)
+        private static void AnalyzeStaticFieldRefAccess(GenericContext ctx, OperationAnalysisContext context, IInvocationOperation operation, InvocationExpressionSyntax invocation)
         {
-            var ctx = new GenericContext(context.Compilation, () => context.Operation.Syntax.GetLocation(), context.ReportDiagnostic);
-
             if (operation.TargetMethod.Arity == 1)
             {
                 if (operation.TargetMethod.Parameters.Length == 1 && string.Equals(operation.TargetMethod.Parameters[0].Type.Name, nameof(String), StringComparison.OrdinalIgnoreCase))
@@ -262,10 +322,8 @@ namespace BUTR.Harmony.Analyzer.Analyzers
             }
         }
         
-        private static void AnalyzeStructFieldRefAccess(OperationAnalysisContext context, IInvocationOperation operation, InvocationExpressionSyntax invocation)
+        private static void AnalyzeStructFieldRefAccess(GenericContext ctx, OperationAnalysisContext context, IInvocationOperation operation, InvocationExpressionSyntax invocation)
         {
-            var ctx = new GenericContext(context.Compilation, () => context.Operation.Syntax.GetLocation(), context.ReportDiagnostic);
-
             if (operation.TargetMethod.Arity == 1)
             {
                 if (operation.TargetMethod.Parameters.Length == 1 && string.Equals(operation.TargetMethod.Parameters[0].Type.Name, nameof(String), StringComparison.OrdinalIgnoreCase))
@@ -293,10 +351,8 @@ namespace BUTR.Harmony.Analyzer.Analyzers
             }
         }
         
-        private static void AnalyzeTypeByName(OperationAnalysisContext context, IInvocationOperation operation, InvocationExpressionSyntax invocation)
+        private static void AnalyzeTypeByName(GenericContext ctx, OperationAnalysisContext context, IInvocationOperation operation, InvocationExpressionSyntax invocation)
         {
-            var ctx = new GenericContext(context.Compilation, () => context.Operation.Syntax.GetLocation(), context.ReportDiagnostic);
-
             if (operation.TargetMethod.Parameters.Length == 1 && string.Equals(operation.TargetMethod.Parameters[0].Type.Name, nameof(String), StringComparison.OrdinalIgnoreCase))
             {
                 var typeName = RoslynHelper.GetString(operation.SemanticModel, invocation.ArgumentList.Arguments[0], context.CancellationToken);
