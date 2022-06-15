@@ -22,8 +22,8 @@ namespace BUTR.Harmony.Analyzer.Analyzers
             RuleIdentifiers.WrongTypeRule,
             RuleIdentifiers.ConstructorRule,
             RuleIdentifiers.StaticConstructorRule,
-            RuleIdentifiers.NotInstanceFieldRule,
-            RuleIdentifiers.NotStaticFieldRule
+            RuleIdentifiers.NotInstanceFieldRule, // TODO: Split
+            RuleIdentifiers.NotStaticFieldRule // TODO: Split
         );
 
         public override void Initialize(AnalysisContext context)
@@ -38,7 +38,6 @@ namespace BUTR.Harmony.Analyzer.Analyzers
         {
             if (context.Symbol is not INamedTypeSymbol namedTypeSymbol) return;
 
-            var tt = namedTypeSymbol.GetAttributes();
             var attributes = namedTypeSymbol.GetAttributes()
                 .Where(a =>
                     string.Equals(a.AttributeClass.ContainingNamespace.Name, "HarmonyLib", StringComparison.Ordinal) &&

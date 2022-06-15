@@ -1,14 +1,11 @@
 ﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-using System;
 using System.Threading.Tasks;
 
 namespace BUTR.Harmony.Analyzer.Test.Roslyn
 {
     public partial class AccessToolsAnalyzerTest
     {
-        public enum MultipleType { Valid, Partial, Invalid }
-
         private static string SourceCodeMultiple(string content) => @$"
 {HarmonyBase}
 
@@ -65,12 +62,35 @@ namespace BUTR.Harmony.Analyzer.Test
         [DataRow("Field", MemberTestType.String, "BUTR.Harmony.Analyzer.Test.TestClass", "_field")]
         [DataRow("DeclaredField", MemberTestType.TypeOf, "BUTR.Harmony.Analyzer.Test.TestClass", "_field")]
         [DataRow("DeclaredField", MemberTestType.String, "BUTR.Harmony.Analyzer.Test.TestClass", "_field")]
-        public async Task Multiple(string method, MemberTestType testType, string type, string member)
+        public async Task Multiple_Field(string method, MemberTestType testType, string type, string member)
+        {
+            await CreateProjectBuilder().WithSourceCode(SourceCodeMultiple(ValidMulti(method, testType, type, member))).ValidateAsync();
+            await CreateProjectBuilder().WithSourceCode(SourceCodeMultiple(PartialMulti(method, testType, type, member))).ValidateAsync();
+            await CreateProjectBuilder().WithSourceCode(SourceCodeMultiple(InvalidMulti(method, testType, type, member))).ValidateAsync();
+        }
+        
+        [TestMethod]
+        [DataRow("Property", MemberTestType.TypeOf, "BUTR.Harmony.Analyzer.Test.TestClass", "_property")]
+        [DataRow("Property", MemberTestType.String, "BUTR.Harmony.Analyzer.Test.TestClass", "_property")]
+        [DataRow("DeclaredProperty", MemberTestType.TypeOf, "BUTR.Harmony.Analyzer.Test.TestClass", "_property")]
+        [DataRow("DeclaredProperty", MemberTestType.String, "BUTR.Harmony.Analyzer.Test.TestClass", "_property")]
+        public async Task Multiple_Property(string method, MemberTestType testType, string type, string member)
         {
             await CreateProjectBuilder().WithSourceCode(SourceCodeMultiple(ValidMulti(method, testType, type, member))).ValidateAsync();
             await CreateProjectBuilder().WithSourceCode(SourceCodeMultiple(PartialMulti(method, testType, type, member))).ValidateAsync();
             await CreateProjectBuilder().WithSourceCode(SourceCodeMultiple(InvalidMulti(method, testType, type, member))).ValidateAsync();
         }
 
+        [TestMethod]
+        [DataRow("Method", MemberTestType.TypeOf, "BUTR.Harmony.Analyzer.Test.TestClass", "_method")]
+        [DataRow("Method", MemberTestType.String, "BUTR.Harmony.Analyzer.Test.TestClass", "_method")]
+        [DataRow("DeclaredMethod", MemberTestType.TypeOf, "BUTR.Harmony.Analyzer.Test.TestClass", "_method")]
+        [DataRow("DeclaredMethod", MemberTestType.String, "BUTR.Harmony.Analyzer.Test.TestClass", "_method")]
+        public async Task Multiple_Method(string method, MemberTestType testType, string type, string member)
+        {
+            await CreateProjectBuilder().WithSourceCode(SourceCodeMultiple(ValidMulti(method, testType, type, member))).ValidateAsync();
+            await CreateProjectBuilder().WithSourceCode(SourceCodeMultiple(PartialMulti(method, testType, type, member))).ValidateAsync();
+            await CreateProjectBuilder().WithSourceCode(SourceCodeMultiple(InvalidMulti(method, testType, type, member))).ValidateAsync();
+        }
     }
 }

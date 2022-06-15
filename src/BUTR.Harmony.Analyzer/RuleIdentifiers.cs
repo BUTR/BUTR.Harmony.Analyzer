@@ -19,6 +19,7 @@ namespace BUTR.Harmony.Analyzer
         public const string MissingStaticConstructor = "BHA0008";
         public const string NotInstanceField = "BHA0009";
         public const string NotStaticField = "BHA0010";
+        public const string TypeOfToStringFullName = "BHA0011";
 
         private static string GetHelpUri(string idenfifier) =>
             string.Format(CultureInfo.InvariantCulture, "https://github.com/BUTR/BUTR.Harmony.Analyzer/blob/master/docs/Rules/{0}.md", idenfifier);
@@ -106,7 +107,7 @@ namespace BUTR.Harmony.Analyzer
             helpLinkUri: GetHelpUri(MissingStaticConstructor));
         
         internal static readonly DiagnosticDescriptor NotInstanceFieldRule = new(
-            MissingStaticConstructor,
+            NotInstanceField,
             title: "Field is static",
             messageFormat: "Field '{0}' is static",
             RuleCategories.Usage,
@@ -116,7 +117,7 @@ namespace BUTR.Harmony.Analyzer
             helpLinkUri: GetHelpUri(NotInstanceField));
         
         internal static readonly DiagnosticDescriptor NotStaticFieldRule = new(
-            MissingStaticConstructor,
+            NotStaticField,
             title: "Field is not static",
             messageFormat: "Field '{0}' is not static",
             RuleCategories.Usage,
@@ -124,6 +125,16 @@ namespace BUTR.Harmony.Analyzer
             isEnabledByDefault: true,
             description: "",
             helpLinkUri: GetHelpUri(NotStaticField));
+        
+        internal static readonly DiagnosticDescriptor TypeOfToStringFullNamedRule = new(
+            TypeOfToStringFullName,
+            title: "Use text based representation instead of typeof",
+            messageFormat: "The analyzer provides insights whether the type {0} exists",
+            RuleCategories.Style,
+            DiagnosticSeverity.Info,
+            isEnabledByDefault: true,
+            description: "",
+            helpLinkUri: GetHelpUri(TypeOfToStringFullName));
 
         internal static Diagnostic ReportAssembly(GenericContext context, string assemblyName, string typeName) =>
             DiagnosticUtils.CreateDiagnostic(AssemblyRule, context, assemblyName, typeName);
@@ -154,5 +165,8 @@ namespace BUTR.Harmony.Analyzer
         
         internal static Diagnostic ReportNotStaticField(GenericContext context, string fieldName) =>
             DiagnosticUtils.CreateDiagnostic(NotStaticFieldRule, context, fieldName);
+        
+        internal static Diagnostic ReportTypeOfToStringFullName(GenericContext context, string typeName) =>
+            DiagnosticUtils.CreateDiagnostic(TypeOfToStringFullNamedRule, context, typeName);
     }
 }

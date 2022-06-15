@@ -10,7 +10,7 @@ using System.Threading;
 
 namespace BUTR.Harmony.Analyzer.Utils
 {
-    internal static class RoslynHelper
+    public static class RoslynHelper
     {
         public static IEnumerable<IAssemblySymbol> GetAssemblies(this Compilation compilation) => compilation.References
             .Select(compilation.GetAssemblyOrModuleSymbol)
@@ -70,6 +70,15 @@ namespace BUTR.Harmony.Analyzer.Utils
                 return literal.Token.ValueText;
             }
 
+            if (argument.Expression is TypeOfExpressionSyntax typeOf)
+            {
+                var type = semanticModel.GetTypeInfo(typeOf.Type, ct);
+                if (type.Type is INamedTypeSymbol namedTypeSymbol)
+                {
+                    return NameFormatter.ReflectionName(namedTypeSymbol);
+                }
+            }
+
             var constantValue = semanticModel.GetConstantValue(argument.Expression, ct);
             if (constantValue.HasValue && constantValue.Value is string constString)
             {
@@ -85,7 +94,7 @@ namespace BUTR.Harmony.Analyzer.Utils
             return null;
         }
 
-        public static bool CompareMethodSignatures(IMethodSymbol methodSymbol, ImmutableArray<ITypeSymbol>? paramTypesNullable, ImmutableArray<ArgumentType>? paramVariationsNullable)
+        internal static bool CompareMethodSignatures(IMethodSymbol methodSymbol, ImmutableArray<ITypeSymbol>? paramTypesNullable, ImmutableArray<ArgumentType>? paramVariationsNullable)
         {
             if (paramTypesNullable is not { } paramTypes)
             {

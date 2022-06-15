@@ -4,7 +4,7 @@ using Microsoft.CodeAnalysis;
 
 namespace BUTR.Harmony.Analyzer.Utils
 {
-    internal static class NameFormatter
+    public static class NameFormatter
     {
         private static readonly SymbolDisplayFormat Style = new(
             typeQualificationStyle: SymbolDisplayTypeQualificationStyle.NameAndContainingTypesAndNamespaces,
@@ -25,7 +25,7 @@ namespace BUTR.Harmony.Analyzer.Utils
                 ? typeSymbol.ToDisplayString(Style) // TODO: Bad fallback
                 : typeSymbol.MetadataName;
 
-        public static string ReflectionName(SignatureType signatureType) => signatureType.ToString(true) ?? string.Empty;
-        public static string ReflectionGenericName(SignatureType signatureType) => signatureType.Name;
+        internal static string ReflectionName(SignatureType signatureType) => signatureType.ToString(true) ?? string.Empty;
+        internal static string ReflectionGenericName(SignatureType signatureType) => signatureType.Name;
     }
 }
