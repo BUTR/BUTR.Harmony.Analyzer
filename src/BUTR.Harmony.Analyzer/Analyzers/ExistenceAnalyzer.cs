@@ -22,7 +22,9 @@ namespace BUTR.Harmony.Analyzer.Analyzers
             RuleIdentifiers.PropertySetterRule,
             RuleIdentifiers.WrongTypeRule,
             RuleIdentifiers.ConstructorRule,
-            RuleIdentifiers.StaticConstructorRule
+            RuleIdentifiers.StaticConstructorRule,
+            RuleIdentifiers.NotInstanceFieldRule,
+            RuleIdentifiers.NotStaticFieldRule
         );
 
         public override void Initialize(AnalysisContext context)
@@ -50,7 +52,8 @@ namespace BUTR.Harmony.Analyzer.Analyzers
             var diagnostics = new Dictionary<IInvocationOperation, ImmutableArray<Diagnostic>>();
             foreach (var invocationOperation in GetAllInvocations(coalesceOperation))
             {
-                diagnostics[invocationOperation] = InvocationAnalytics.AnalyzeInvocationAndReport(context, invocationOperation);
+                diagnostics[invocationOperation] = InvocationAnalytics.AnalyzeInvocationAndReport(context, invocationOperation)
+                        .Where(x => SupportedDiagnostics.Contains(x.Descriptor)).ToImmutableArray();
             }
 
             // If every invocation has an error, display all of them
@@ -96,7 +99,7 @@ namespace BUTR.Harmony.Analyzer.Analyzers
 
             if (_ignoredLocations.Contains(invocationOperation.Syntax.GetLocation())) return;
 
-            foreach (var diagnotic in InvocationAnalytics.AnalyzeInvocationAndReport(context, invocationOperation))
+            foreach (var diagnotic in InvocationAnalytics.AnalyzeInvocationAndReport(context, invocationOperation).Where(x => SupportedDiagnostics.Contains(x.Descriptor)))
             {
                 context.ReportDiagnostic(diagnotic);
             }

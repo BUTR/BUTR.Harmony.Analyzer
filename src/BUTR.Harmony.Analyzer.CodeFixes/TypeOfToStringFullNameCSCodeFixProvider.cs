@@ -28,27 +28,34 @@ namespace BUTR.Harmony.Analyzer
         {
             var root = await context.Document.GetSyntaxRootAsync(context.CancellationToken).ConfigureAwait(false);
             var nodeToFix = root?.FindNode(context.Span, getInnermostNodeForTie: true);
-            if (nodeToFix is not InvocationExpressionSyntax invocationExpressionSyntax)
+            if (nodeToFix is not TypeOfExpressionSyntax typeOfExpression)
                 return;
             
             context.RegisterCodeFix(
                 CodeAction.Create(
                     title: title,
-                    createChangedDocument: ct => TypeOfToStringAsync(context.Document, invocationExpressionSyntax, ct),
+                    createChangedDocument: ct => TypeOfToStringAsync(context.Document, typeOfExpression, ct),
                     equivalenceKey: title),
-                context.Diagnostics.First());
+                context.Diagnostics);
         }
         
-        private async Task<Document> TypeOfToStringAsync(Document document, InvocationExpressionSyntax nodeToFix, CancellationToken ct)
+        private async Task<Document> TypeOfToStringAsync(Document document, TypeOfExpressionSyntax nodeToFix, CancellationToken ct)
         {
-            var semanticModel = await document.GetSemanticModelAsync(ct).ConfigureAwait(false);
-            
-            var editor = await DocumentEditor.CreateAsync(document, ct).ConfigureAwait(false);
-
-            if (nodeToFix.ArgumentList.Arguments.Count < 2)
+            if (nodeToFix.Parent is not ArgumentSyntax argument) 
                 return document;
             
-            var arguments = nodeToFix.ArgumentList.Arguments;
+            if (argument.Parent is not ArgumentListSyntax argumentList) 
+                return document;
+
+            if (argumentList.Arguments.Count < 2)
+                return document;
+
+            if (!document.SupportsSemanticModel)
+                return document;
+            
+            var semanticModel = await document.GetSemanticModelAsync(ct).ConfigureAwait(false);
+            
+            var arguments = argumentList.Arguments;
             
             var typeName = RoslynHelper.GetString(semanticModel, arguments[0], ct);
             var memberName = RoslynHelper.GetString(semanticModel, arguments[1], ct);
@@ -57,8 +64,10 @@ namespace BUTR.Harmony.Analyzer
             arguments = arguments.RemoveAt(0);
             arguments = arguments.Insert(0, SyntaxFactory.Argument(SyntaxFactory.ParseExpression($"\"{typeName}:{memberName}\"")));
 
-            editor.ReplaceNode(nodeToFix, nodeToFix.WithArgumentList(nodeToFix.ArgumentList.WithArguments(arguments)));
-            return editor.GetChangedDocument();
+            var oldRoot = await document.GetSyntaxRootAsync(ct);
+            var newRoot = oldRoot.ReplaceNode(argumentList, argumentList.WithArguments(arguments));
+            
+            return document.WithSyntaxRoot(newRoot);
         }
     }
 }

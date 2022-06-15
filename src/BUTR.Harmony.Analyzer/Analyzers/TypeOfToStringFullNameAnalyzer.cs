@@ -32,7 +32,7 @@ namespace BUTR.Harmony.Analyzer.Analyzers
             context.RegisterOperationAction(AnalyzeInvocationSuggestions, OperationKind.Invocation);
         }
 
-        private void AnalyzeInvocationSuggestions(OperationAnalysisContext context)
+        private static void AnalyzeInvocationSuggestions(OperationAnalysisContext context)
         {
             if (context.Operation is not IInvocationOperation invocationOperation) return;
 
@@ -49,7 +49,7 @@ namespace BUTR.Harmony.Analyzer.Analyzers
             var typeInfos = RoslynHelper.GetTypeInfos(invocationOperation.SemanticModel, invocationExpressionSyntax.ArgumentList.Arguments[0], context.CancellationToken);
             if (typeInfos.IsEmpty) return;
             
-            var ctx = new GenericContext(context.Compilation, () => invocationOperation.Syntax.GetLocation(), diagnostic => context.ReportDiagnostic(diagnostic));
+            var ctx = new GenericContext(context.Compilation, () => invocationExpressionSyntax.ArgumentList.Arguments[0].GetLocation(), context.ReportDiagnostic);
             ctx.ReportDiagnostic(RuleIdentifiers.ReportTypeOfToStringFullName(ctx, NameFormatter.ReflectionName(typeInfos.First())));
         }
     }
