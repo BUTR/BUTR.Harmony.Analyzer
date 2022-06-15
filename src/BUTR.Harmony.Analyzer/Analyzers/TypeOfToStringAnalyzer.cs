@@ -13,10 +13,10 @@ using System.Linq;
 namespace BUTR.Harmony.Analyzer.Analyzers
 {
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
-    public class TypeOfToStringFullNameAnalyzer : DiagnosticAnalyzer
+    public class TypeOfToStringAnalyzer : DiagnosticAnalyzer
     {
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => ImmutableArray.Create(
-            RuleIdentifiers.TypeOfToStringFullNamedRule
+            RuleIdentifiers.TypeOfToStringRule
         );
 
         public override void Initialize(AnalysisContext context)
@@ -26,7 +26,7 @@ namespace BUTR.Harmony.Analyzer.Analyzers
             context.RegisterCompilationStartAction(SetMetadataImportOptions);
         }
 
-        private void SetMetadataImportOptions(CompilationStartAnalysisContext context)
+        private static void SetMetadataImportOptions(CompilationStartAnalysisContext context)
         {
             context.Compilation.Options.WithMetadataImportOptions(MetadataImportOptions.All);
             context.RegisterOperationAction(AnalyzeInvocationSuggestions, OperationKind.Invocation);
@@ -50,7 +50,7 @@ namespace BUTR.Harmony.Analyzer.Analyzers
             if (typeInfos.IsEmpty) return;
             
             var ctx = new GenericContext(context.Compilation, () => invocationExpressionSyntax.ArgumentList.Arguments[0].GetLocation(), context.ReportDiagnostic);
-            ctx.ReportDiagnostic(RuleIdentifiers.ReportTypeOfToStringFullName(ctx, NameFormatter.ReflectionName(typeInfos.First())));
+            ctx.ReportDiagnostic(RuleIdentifiers.ReportTypeOfToString(ctx, NameFormatter.ReflectionName(typeInfos.First())));
         }
     }
 }

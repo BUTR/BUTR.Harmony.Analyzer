@@ -19,7 +19,8 @@ namespace BUTR.Harmony.Analyzer
         public const string MissingStaticConstructor = "BHA0008";
         public const string NotInstanceField = "BHA0009";
         public const string NotStaticField = "BHA0010";
-        public const string TypeOfToStringFullName = "BHA0011";
+        public const string TypeOfToString = "BHA0011";
+        public const string SymbolExtensionsToString = "BHA0012";
 
         private static string GetHelpUri(string idenfifier) =>
             string.Format(CultureInfo.InvariantCulture, "https://github.com/BUTR/BUTR.Harmony.Analyzer/blob/master/docs/Rules/{0}.md", idenfifier);
@@ -126,15 +127,25 @@ namespace BUTR.Harmony.Analyzer
             description: "",
             helpLinkUri: GetHelpUri(NotStaticField));
         
-        internal static readonly DiagnosticDescriptor TypeOfToStringFullNamedRule = new(
-            TypeOfToStringFullName,
+        internal static readonly DiagnosticDescriptor TypeOfToStringRule = new(
+            TypeOfToString,
             title: "Use text based representation instead of typeof",
             messageFormat: "The analyzer provides insights whether the type {0} exists",
             RuleCategories.Style,
             DiagnosticSeverity.Info,
             isEnabledByDefault: true,
             description: "",
-            helpLinkUri: GetHelpUri(TypeOfToStringFullName));
+            helpLinkUri: GetHelpUri(TypeOfToString));
+        
+        internal static readonly DiagnosticDescriptor SymbolExtensionsToStringRule = new(
+            SymbolExtensionsToString,
+            title: "Use text based representation instead of SymbolExtensions",
+            messageFormat: "The analyzer provides insights whether the type {0} exists",
+            RuleCategories.Style,
+            DiagnosticSeverity.Info,
+            isEnabledByDefault: true,
+            description: "",
+            helpLinkUri: GetHelpUri(SymbolExtensionsToString));
 
         internal static Diagnostic ReportAssembly(GenericContext context, string assemblyName, string typeName) =>
             DiagnosticUtils.CreateDiagnostic(AssemblyRule, context, assemblyName, typeName);
@@ -166,7 +177,10 @@ namespace BUTR.Harmony.Analyzer
         internal static Diagnostic ReportNotStaticField(GenericContext context, string fieldName) =>
             DiagnosticUtils.CreateDiagnostic(NotStaticFieldRule, context, fieldName);
         
-        internal static Diagnostic ReportTypeOfToStringFullName(GenericContext context, string typeName) =>
-            DiagnosticUtils.CreateDiagnostic(TypeOfToStringFullNamedRule, context, typeName);
+        internal static Diagnostic ReportTypeOfToString(GenericContext context, string typeName) =>
+            DiagnosticUtils.CreateDiagnostic(TypeOfToStringRule, context, typeName);
+        
+        internal static Diagnostic ReportSymbolExtensionsToString(GenericContext context, string typeName) =>
+            DiagnosticUtils.CreateDiagnostic(SymbolExtensionsToStringRule, context, typeName);
     }
 }

@@ -16,11 +16,11 @@ using System.Threading.Tasks;
 namespace BUTR.Harmony.Analyzer
 {
     [ExportCodeFixProvider(LanguageNames.CSharp), Shared]
-    public class TypeOfToStringFullNameCSCodeFixProvider : CodeFixProvider
+    public class TypeOfToStringCSCodeFixProvider : CodeFixProvider
     {
         private const string title = "Convert to string";
 
-        public sealed override ImmutableArray<string> FixableDiagnosticIds => ImmutableArray.Create(RuleIdentifiers.TypeOfToStringFullName);
+        public sealed override ImmutableArray<string> FixableDiagnosticIds => ImmutableArray.Create(RuleIdentifiers.TypeOfToString);
 
         public sealed override FixAllProvider GetFixAllProvider() => WellKnownFixAllProviders.BatchFixer;
 
@@ -39,7 +39,7 @@ namespace BUTR.Harmony.Analyzer
                 context.Diagnostics);
         }
         
-        private async Task<Document> TypeOfToStringAsync(Document document, TypeOfExpressionSyntax nodeToFix, CancellationToken ct)
+        private static async Task<Document> TypeOfToStringAsync(Document document, TypeOfExpressionSyntax nodeToFix, CancellationToken ct)
         {
             if (nodeToFix.Parent is not ArgumentSyntax argument) 
                 return document;
@@ -54,7 +54,8 @@ namespace BUTR.Harmony.Analyzer
                 return document;
             
             var semanticModel = await document.GetSemanticModelAsync(ct).ConfigureAwait(false);
-            
+            var editor = await DocumentEditor.CreateAsync(document, ct).ConfigureAwait(false);
+
             var arguments = argumentList.Arguments;
             
             var typeName = RoslynHelper.GetString(semanticModel, arguments[0], ct);
@@ -64,10 +65,9 @@ namespace BUTR.Harmony.Analyzer
             arguments = arguments.RemoveAt(0);
             arguments = arguments.Insert(0, SyntaxFactory.Argument(SyntaxFactory.ParseExpression($"\"{typeName}:{memberName}\"")));
 
-            var oldRoot = await document.GetSyntaxRootAsync(ct);
-            var newRoot = oldRoot.ReplaceNode(argumentList, argumentList.WithArguments(arguments));
+            editor.ReplaceNode(argumentList, argumentList.WithArguments(arguments));
             
-            return document.WithSyntaxRoot(newRoot);
+            return editor.GetChangedDocument();
         }
     }
 }
