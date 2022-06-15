@@ -10,7 +10,7 @@ using System.Linq;
 namespace BUTR.Harmony.Analyzer.Analyzers
 {
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
-    public class TypeExistenceAnalyzer : DiagnosticAnalyzer
+    public class ExistenceAnalyzer : DiagnosticAnalyzer
     {
         private readonly ConcurrentBag<Location> _ignoredLocations = new();
 
@@ -22,9 +22,7 @@ namespace BUTR.Harmony.Analyzer.Analyzers
             RuleIdentifiers.PropertySetterRule,
             RuleIdentifiers.WrongTypeRule,
             RuleIdentifiers.ConstructorRule,
-            RuleIdentifiers.StaticConstructorRule,
-            RuleIdentifiers.NotInstanceFieldRule, // TODO: Split
-            RuleIdentifiers.NotStaticFieldRule // TODO: Split
+            RuleIdentifiers.StaticConstructorRule
         );
 
         public override void Initialize(AnalysisContext context)

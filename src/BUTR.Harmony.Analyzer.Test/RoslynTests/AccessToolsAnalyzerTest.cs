@@ -12,7 +12,7 @@ namespace BUTR.Harmony.Analyzer.Test.Roslyn
     public partial class AccessToolsAnalyzerTest : BaseTest
     {
         private static ProjectBuilder CreateProjectBuilder() => new ProjectBuilder()
-            .WithAnalyzer<AccessToolsAnalyzer>()
+            .WithAnalyzer<ExistenceAnalyzer>()
             .AddSystemTextJson();
 
         [TestMethod]
