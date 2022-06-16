@@ -7,6 +7,7 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Editing;
 
+using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Composition;
@@ -18,6 +19,57 @@ namespace BUTR.Harmony.Analyzer
     [ExportCodeFixProvider(LanguageNames.CSharp), Shared]
     public class SymbolExtensionsToStringCSCodeFixProvider : CodeFixProvider
     {
+        private sealed class Rewriter : CSharpSyntaxRewriter
+        {
+            private readonly SemanticModel _semanticModel;
+            public Rewriter(SemanticModel semanticModel)
+            {
+                _semanticModel = semanticModel;
+            }
+
+            public override SyntaxNode VisitArgumentList(ArgumentListSyntax node)
+            {
+                var argumentList = (ArgumentListSyntax) base.VisitArgumentList(node);
+                var arguments = argumentList.Arguments;
+
+                if (arguments[0].Expression is not LambdaExpressionSyntax lambdaExpression) return argumentList;
+                if (_semanticModel.GetSymbolInfo(lambdaExpression.Body).Symbol is not { } lambdaBodySymbol) return argumentList;
+                var typeName = NameFormatter.ReflectionName(lambdaBodySymbol.ContainingType);
+                var memberName = lambdaBodySymbol.MetadataName;
+                
+                return argumentList.WithArguments(arguments
+                    .RemoveAt(0)
+                    .Insert(0, SyntaxFactory.Argument(SyntaxFactory.ParseExpression($"\"{typeName}:{memberName}\""))));
+            }
+
+            public override SyntaxNode VisitGenericName(GenericNameSyntax node)
+            {
+                var identifier = (GenericNameSyntax) base.VisitGenericName(node);
+                if (_semanticModel.GetSymbolInfo(identifier).Symbol is { Kind: SymbolKind.Method } symbolInfo)
+                {
+                    if (!ReplacementTable.TryGetValue(symbolInfo.MetadataName, out var replacement)) return identifier;
+                    return SyntaxFactory.IdentifierName(replacement);
+                }
+                return identifier;
+            }
+
+            public override SyntaxNode VisitIdentifierName(IdentifierNameSyntax node)
+            {
+                var identifier = (IdentifierNameSyntax) base.VisitIdentifierName(node);
+                if (_semanticModel.GetTypeInfo(identifier).Type is { } typeInfo)
+                {
+                    if (!typeInfo.MetadataName.StartsWith("SymbolExtensions", StringComparison.Ordinal)) return identifier;
+                    return identifier.WithIdentifier(SyntaxFactory.Identifier("AccessTools"));
+                }
+                if (_semanticModel.GetSymbolInfo(identifier).Symbol is { Kind: SymbolKind.Method } symbolInfo)
+                {
+                    if (!ReplacementTable.TryGetValue(symbolInfo.MetadataName, out var replacement)) return identifier;
+                    return identifier.WithIdentifier(SyntaxFactory.Identifier(replacement));
+                }
+                return identifier;
+            }
+        }
+        
         private const string title = "Convert to string";
 
         public static readonly IReadOnlyDictionary<string, string> ReplacementTable = new Dictionary<string, string>
@@ -58,66 +110,13 @@ namespace BUTR.Harmony.Analyzer
             if (argumentList.Arguments.Count != 1) return document;
             if (!document.SupportsSemanticModel) return document;
 
-            return nodeToFix.Body switch
-            {
-                MemberAccessExpressionSyntax => await ReplaceFieldProperty(document, nodeToFix, invocationExpression, argumentList, ct).ConfigureAwait(false),
-                InvocationExpressionSyntax => await ReplaceMethod(document, nodeToFix, invocationExpression, argumentList, ct).ConfigureAwait(false),
-                _ => document
-            };
-        }
-
-        private static async Task<Document> ReplaceFieldProperty(Document document, LambdaExpressionSyntax nodeToFix, InvocationExpressionSyntax invocation, ArgumentListSyntax argumentList, CancellationToken ct)
-        {
-            var semanticModel = await document.GetSemanticModelAsync(ct).ConfigureAwait(false);
             var editor = await DocumentEditor.CreateAsync(document, ct).ConfigureAwait(false);
+            var semanticModel = editor.SemanticModel;
 
-            var arguments = argumentList.Arguments;
-            if (nodeToFix.Body is not MemberAccessExpressionSyntax memberAccessExpression) return document;
-            if (memberAccessExpression.Expression is not IdentifierNameSyntax typeIdentifierName) return document;
-            if (memberAccessExpression.Name is not IdentifierNameSyntax fieldIdentifierName) return document;
-            var typeName = NameFormatter.ReflectionName(semanticModel.GetTypeInfo(typeIdentifierName).Type);
-            var memberName = semanticModel.GetSymbolInfo(fieldIdentifierName).Symbol.MetadataName;
-            arguments = arguments.RemoveAt(0).Insert(0, SyntaxFactory.Argument(SyntaxFactory.ParseExpression($"\"{typeName}:{memberName}\"")));
-            editor.ReplaceNode(argumentList, argumentList.WithArguments(arguments));
-
-            if (invocation.Expression is not MemberAccessExpressionSyntax methodExpression) return document;
-            if (methodExpression.Expression is not MemberAccessExpressionSyntax typeExpression) return document;
-            var oldMemberName = methodExpression.Name.ToString().IndexOf('<') is var idx and not -1
-                ? methodExpression.Name.ToString().Substring(0, idx)
-                : methodExpression.Name.ToString();
-            var newMemberName = SyntaxFactory.IdentifierName(ReplacementTable.TryGetValue(oldMemberName, out var var)
-                ? var
-                : methodExpression.Name.ToString());
-            var newTypeName = SyntaxFactory.IdentifierName(typeExpression.Name.ToString().Replace("SymbolExtensions", "AccessTools"));
-            editor.ReplaceNode(methodExpression, methodExpression.WithName(newMemberName).WithExpression(typeExpression.WithName(newTypeName)));
-
-            return editor.GetChangedDocument();
-        }
-        
-        private static async Task<Document> ReplaceMethod(Document document, LambdaExpressionSyntax nodeToFix, InvocationExpressionSyntax invocation, ArgumentListSyntax argumentList, CancellationToken ct)
-        {
-            var semanticModel = await document.GetSemanticModelAsync(ct).ConfigureAwait(false);
-            var editor = await DocumentEditor.CreateAsync(document, ct).ConfigureAwait(false);
-
-            var arguments = argumentList.Arguments;
-            if (nodeToFix.Body is not InvocationExpressionSyntax lambdaInvocationExpression) return document;
-            if (lambdaInvocationExpression.Expression is not MemberAccessExpressionSyntax methodLambdaExpression) return document;
-            if (methodLambdaExpression.Expression is not MemberAccessExpressionSyntax typeLambdaExpression) return document;
-            var typeName = NameFormatter.ReflectionName(semanticModel.GetTypeInfo(typeLambdaExpression).Type);
-            var memberName = semanticModel.GetSymbolInfo(methodLambdaExpression).Symbol.MetadataName;
-            arguments = arguments.RemoveAt(0).Insert(0, SyntaxFactory.Argument(SyntaxFactory.ParseExpression($"\"{typeName}:{memberName}\"")));
-            editor.ReplaceNode(argumentList, argumentList.WithArguments(arguments));
-
-            if (invocation.Expression is not MemberAccessExpressionSyntax methodExpression) return document;
-            if (methodExpression.Expression is not MemberAccessExpressionSyntax typeExpression) return document;
-            var oldMethodName = methodExpression.Name.ToString().IndexOf('<') is var idx and not -1
-                ? methodExpression.Name.ToString().Substring(0, idx)
-                : methodExpression.Name.ToString();
-            var newMethodName = SyntaxFactory.IdentifierName(ReplacementTable.TryGetValue(oldMethodName, out var var)
-                ? var
-                : methodExpression.Name.ToString());
-            var newTypeName = SyntaxFactory.IdentifierName(typeExpression.Name.ToString().Replace("SymbolExtensions", "AccessTools"));
-            editor.ReplaceNode(methodExpression, methodExpression.WithName(newMethodName).WithExpression(typeExpression.WithName(newTypeName)));
+            if (semanticModel.GetSymbolInfo(invocationExpression).Symbol is not IMethodSymbol methodSymbol) return document;
+            if (!NameFormatter.ReflectionName(methodSymbol.ContainingType).Contains("SymbolExtensions")) return document;
+            
+            editor.ReplaceNode(invocationExpression, new Rewriter(editor.SemanticModel).Visit(invocationExpression));
 
             return editor.GetChangedDocument();
         }

@@ -29,17 +29,17 @@ namespace BUTR.Harmony.Analyzer.Analyzers
 
             if (methodName.Equals("FieldRefAccess".AsSpan(), StringComparison.Ordinal))
             {
-                AnalyzeFieldRefAccess(ctx, context, invocationOperation, invocation);
+                AnalyzeFieldRefAccess(ctx, context, invocationOperation, invocation, false);
                 return diagnostics.ToImmutable();
             }
             if (methodName.Equals("StructFieldRefAccess".AsSpan(), StringComparison.Ordinal))
             {
-                AnalyzeStructFieldRefAccess(ctx, context, invocationOperation, invocation);
+                AnalyzeFieldRefAccess(ctx, context, invocationOperation, invocation, false);
                 return diagnostics.ToImmutable();
             }
             if (methodName.Equals("StaticFieldRefAccess".AsSpan(), StringComparison.Ordinal))
             {
-                AnalyzeStaticFieldRefAccess(ctx, context, invocationOperation, invocation);
+                AnalyzeFieldRefAccess(ctx, context, invocationOperation, invocation, true);
                 return diagnostics.ToImmutable();
             }
             if (methodName.Equals("TypeByName".AsSpan(), StringComparison.Ordinal))
@@ -114,7 +114,11 @@ namespace BUTR.Harmony.Analyzer.Analyzers
 
         private static void AnalyzeConstructor(GenericContext ctx, OperationAnalysisContext context, IInvocationOperation operation, InvocationExpressionSyntax invocation, MemberFlags memberFlags)
         {
-            if (string.Equals(operation.TargetMethod.Parameters.FirstOrDefault()?.Type.Name, nameof(Type), StringComparison.OrdinalIgnoreCase))
+            if (context.Compilation.GetTypeByMetadataName(typeof(Type).FullName) is not { } typeSymbol) return;
+            if (context.Compilation.GetTypeByMetadataName(typeof(string).FullName) is not { } stringSymbol) return;
+            if (operation.TargetMethod.Parameters.Length < 1) return;
+
+            if (operation.TargetMethod.Parameters[0].Type.Equals(typeSymbol, SymbolEqualityComparer.Default))
             {
                 if (invocation.ArgumentList.Arguments.Count < 2) return;
 
@@ -123,13 +127,11 @@ namespace BUTR.Harmony.Analyzer.Analyzers
 
                 var paramTypes = ImmutableArray<ITypeSymbol>.Empty;
                 if (invocation.ArgumentList.Arguments.Count == 2 && invocation.ArgumentList.Arguments[1].Expression is ArrayCreationExpressionSyntax { Initializer: { } initializer })
-                {
                     paramTypes = RoslynHelper.GetTypeInfosFromInitializer(operation.SemanticModel, initializer, context.CancellationToken);
-                }
                 
                 MemberHelper.FindAndReportForConstructor(ctx, typeInfos.Select(NameFormatter.ReflectionName).ToImmutableArray(), paramTypes, memberFlags);
             }
-            else if (string.Equals(operation.TargetMethod.Parameters.FirstOrDefault()?.Type.Name, nameof(String), StringComparison.OrdinalIgnoreCase))
+            else if (operation.TargetMethod.Parameters[0].Type.Equals(stringSymbol, SymbolEqualityComparer.Default))
             {
                 if (invocation.ArgumentList.Arguments.Count < 1) return;
 
@@ -137,13 +139,8 @@ namespace BUTR.Harmony.Analyzer.Analyzers
                 if (typeName is null) return;
 
                 var paramTypes = ImmutableArray<ITypeSymbol>.Empty;
-                if (invocation.ArgumentList.Arguments.Count == 2)
-                {
-                    if (invocation.ArgumentList.Arguments[1].Expression is ArrayCreationExpressionSyntax { Initializer: { } initializer })
-                    {
-                        paramTypes = RoslynHelper.GetTypeInfosFromInitializer(operation.SemanticModel, initializer, context.CancellationToken);
-                    }
-                }
+                if (invocation.ArgumentList.Arguments.Count == 2 && invocation.ArgumentList.Arguments[1].Expression is ArrayCreationExpressionSyntax { Initializer: { } initializer })
+                    paramTypes = RoslynHelper.GetTypeInfosFromInitializer(operation.SemanticModel, initializer, context.CancellationToken);
                 
                 MemberHelper.FindAndReportForConstructor(ctx, ImmutableArray.Create<string>(typeName), paramTypes, memberFlags);
             }
@@ -151,7 +148,11 @@ namespace BUTR.Harmony.Analyzer.Analyzers
         
         private static void AnalyzeMembers(GenericContext ctx, OperationAnalysisContext context, IInvocationOperation operation, InvocationExpressionSyntax invocation, MemberFlags memberFlags)
         {
-            if (string.Equals(operation.TargetMethod.Parameters.FirstOrDefault()?.Type.Name, nameof(Type), StringComparison.OrdinalIgnoreCase))
+            if (context.Compilation.GetTypeByMetadataName(typeof(Type).FullName) is not { } typeSymbol) return;
+            if (context.Compilation.GetTypeByMetadataName(typeof(string).FullName) is not { } stringSymbol) return;
+            if (operation.TargetMethod.Parameters.Length < 1) return;
+
+            if (operation.TargetMethod.Parameters[0].Type.Equals(typeSymbol, SymbolEqualityComparer.Default))
             {
                 if (invocation.ArgumentList.Arguments.Count < 2) return;
 
@@ -161,7 +162,7 @@ namespace BUTR.Harmony.Analyzer.Analyzers
 
                 MemberHelper.FindAndReportForMembers(ctx, typeInfos.Select(x => $"{NameFormatter.ReflectionName(x)}:{methodName}").ToImmutableArray(), memberFlags);
             }
-            else if (string.Equals(operation.TargetMethod.Parameters.FirstOrDefault()?.Type.Name, nameof(String), StringComparison.OrdinalIgnoreCase))
+            else if (operation.TargetMethod.Parameters[0].Type.Equals(stringSymbol, SymbolEqualityComparer.Default))
             {
                 if (invocation.ArgumentList.Arguments.Count < 1) return;
 
@@ -172,102 +173,42 @@ namespace BUTR.Harmony.Analyzer.Analyzers
             }
         }
 
-        private static void AnalyzeFieldRefAccess(GenericContext ctx, OperationAnalysisContext context, IInvocationOperation operation, InvocationExpressionSyntax invocation)
+        private static void AnalyzeFieldRefAccess(GenericContext ctx, OperationAnalysisContext context, IInvocationOperation operation, InvocationExpressionSyntax invocation, bool staticCheck)
         {
+            if (context.Compilation.GetTypeByMetadataName(typeof(string).FullName) is not { } stringSymbol) return;
+            if (operation.TargetMethod.Parameters.Length != 1) return;
+            if (!operation.TargetMethod.Parameters[0].Type.Equals(stringSymbol, SymbolEqualityComparer.Default)) return;
+            
             if (operation.TargetMethod.Arity == 1)
             {
-                if (operation.TargetMethod.Parameters.Length == 1 && string.Equals(operation.TargetMethod.Parameters[0].Type.Name, nameof(String), StringComparison.OrdinalIgnoreCase))
-                {
-                    var fieldType = operation.TargetMethod.TypeArguments[0];
+                var fieldType = operation.TargetMethod.TypeArguments[0];
                     
-                    var typeSemicolonMember = RoslynHelper.GetString(operation.SemanticModel, invocation.ArgumentList.Arguments[0], context.CancellationToken);
-                    if (typeSemicolonMember is null) return;
+                var typeSemicolonMember = RoslynHelper.GetString(operation.SemanticModel, invocation.ArgumentList.Arguments[0], context.CancellationToken);
+                if (typeSemicolonMember is null) return;
 
-                    FieldRefAccessHelper.FindAndReportForFieldRefAccess(ctx, fieldType, typeSemicolonMember, false);
-                }
+                FieldRefAccessHelper.FindAndReportForFieldRefAccess(ctx, fieldType, typeSemicolonMember, staticCheck);
             }
-            
-            if (operation.TargetMethod.Arity == 2)
+            else if (operation.TargetMethod.Arity == 2)
             {
-                if (operation.TargetMethod.Parameters.Length == 1 && string.Equals(operation.TargetMethod.Parameters[0].Type.Name, nameof(String), StringComparison.OrdinalIgnoreCase))
-                {
-                    var objectType = operation.TargetMethod.TypeArguments[0];
-                    var fieldType = operation.TargetMethod.TypeArguments[1];
+                var objectType = operation.TargetMethod.TypeArguments[0];
+                var fieldType = operation.TargetMethod.TypeArguments[1];
 
-                    var fieldName = RoslynHelper.GetString(operation.SemanticModel, invocation.ArgumentList.Arguments[0], context.CancellationToken);
-                    if (fieldName is not null)
-                        FieldRefAccessHelper.FindAndReportForFieldRefAccess(ctx, fieldType, $"{NameFormatter.ReflectionName(objectType)}:{fieldName}", false);
-                }
+                var fieldName = RoslynHelper.GetString(operation.SemanticModel, invocation.ArgumentList.Arguments[0], context.CancellationToken);
+                if (fieldName is not null)
+                    FieldRefAccessHelper.FindAndReportForFieldRefAccess(ctx, fieldType, $"{NameFormatter.ReflectionName(objectType)}:{fieldName}", staticCheck);
             }
         }
-        
-        private static void AnalyzeStaticFieldRefAccess(GenericContext ctx, OperationAnalysisContext context, IInvocationOperation operation, InvocationExpressionSyntax invocation)
-        {
-            if (operation.TargetMethod.Arity == 1)
-            {
-                if (operation.TargetMethod.Parameters.Length == 1 && string.Equals(operation.TargetMethod.Parameters[0].Type.Name, nameof(String), StringComparison.OrdinalIgnoreCase))
-                {
-                    var fieldType = operation.TargetMethod.TypeArguments[0];
-                    
-                    var typeSemicolonMember = RoslynHelper.GetString(operation.SemanticModel, invocation.ArgumentList.Arguments[0], context.CancellationToken);
-                    if (typeSemicolonMember is null) return;
 
-                    FieldRefAccessHelper.FindAndReportForFieldRefAccess(ctx, fieldType, typeSemicolonMember, true);
-                }
-            }
-            
-            if (operation.TargetMethod.Arity == 2)
-            {
-                if (operation.TargetMethod.Parameters.Length == 1 && string.Equals(operation.TargetMethod.Parameters[0].Type.Name, nameof(String), StringComparison.OrdinalIgnoreCase))
-                {
-                    var objectType = operation.TargetMethod.TypeArguments[0];
-                    var fieldType = operation.TargetMethod.TypeArguments[1];
-
-                    var fieldName = RoslynHelper.GetString(operation.SemanticModel, invocation.ArgumentList.Arguments[0], context.CancellationToken);
-                    if (fieldName is not null)
-                        FieldRefAccessHelper.FindAndReportForFieldRefAccess(ctx, fieldType, $"{NameFormatter.ReflectionName(objectType)}:{fieldName}", true);
-                }
-            }
-        }
-        
-        private static void AnalyzeStructFieldRefAccess(GenericContext ctx, OperationAnalysisContext context, IInvocationOperation operation, InvocationExpressionSyntax invocation)
-        {
-            if (operation.TargetMethod.Arity == 1)
-            {
-                if (operation.TargetMethod.Parameters.Length == 1 && string.Equals(operation.TargetMethod.Parameters[0].Type.Name, nameof(String), StringComparison.OrdinalIgnoreCase))
-                {
-                    var fieldType = operation.TargetMethod.TypeArguments[0];
-                    
-                    var typeSemicolonMember = RoslynHelper.GetString(operation.SemanticModel, invocation.ArgumentList.Arguments[0], context.CancellationToken);
-                    if (typeSemicolonMember is null) return;
-
-                    FieldRefAccessHelper.FindAndReportForFieldRefAccess(ctx, fieldType, typeSemicolonMember, false);
-                }
-            }
-            
-            if (operation.TargetMethod.Arity == 2)
-            {
-                if (operation.TargetMethod.Parameters.Length == 1 && string.Equals(operation.TargetMethod.Parameters[0].Type.Name, nameof(String), StringComparison.OrdinalIgnoreCase))
-                {
-                    var objectType = operation.TargetMethod.TypeArguments[0];
-                    var fieldType = operation.TargetMethod.TypeArguments[1];
-
-                    var fieldName = RoslynHelper.GetString(operation.SemanticModel, invocation.ArgumentList.Arguments[0], context.CancellationToken);
-                    if (fieldName is not null)
-                        FieldRefAccessHelper.FindAndReportForFieldRefAccess(ctx, fieldType, $"{NameFormatter.ReflectionName(objectType)}:{fieldName}", false);
-                }
-            }
-        }
-        
         private static void AnalyzeTypeByName(GenericContext ctx, OperationAnalysisContext context, IInvocationOperation operation, InvocationExpressionSyntax invocation)
         {
-            if (operation.TargetMethod.Parameters.Length == 1 && string.Equals(operation.TargetMethod.Parameters[0].Type.Name, nameof(String), StringComparison.OrdinalIgnoreCase))
-            {
-                var typeName = RoslynHelper.GetString(operation.SemanticModel, invocation.ArgumentList.Arguments[0], context.CancellationToken);
-                if (typeName is null) return;
+            if (context.Compilation.GetTypeByMetadataName(typeof(string).FullName) is not { } stringSymbol) return;
+            if (operation.TargetMethod.Parameters.Length != 1) return;
+            if (!operation.TargetMethod.Parameters[0].Type.Equals(stringSymbol, SymbolEqualityComparer.Default)) return;
+            
+            var typeName = RoslynHelper.GetString(operation.SemanticModel, invocation.ArgumentList.Arguments[0], context.CancellationToken);
+            if (typeName is null) return;
 
-                MemberHelper.FindAndReportForType(ctx, typeName);
-            }
+            MemberHelper.FindAndReportForType(ctx, typeName);
         } 
     }
 }

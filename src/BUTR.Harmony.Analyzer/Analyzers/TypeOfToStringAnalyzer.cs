@@ -34,18 +34,15 @@ namespace BUTR.Harmony.Analyzer.Analyzers
 
         private static void AnalyzeInvocationSuggestions(OperationAnalysisContext context)
         {
+            if (context.Compilation.GetTypeByMetadataName(typeof(Type).FullName) is not { } typeSymbol) return;
+            if (context.Compilation.GetTypeByMetadataName(typeof(string).FullName) is not { } stringSymbol) return;
             if (context.Operation is not IInvocationOperation invocationOperation) return;
-
-            if (!invocationOperation.TargetMethod.ContainingType.Name.StartsWith("AccessTools", StringComparison.Ordinal)) return;
-
             if (invocationOperation.Syntax is not InvocationExpressionSyntax invocationExpressionSyntax) return;
-
+            if (!invocationOperation.TargetMethod.ContainingType.Name.StartsWith("AccessTools", StringComparison.Ordinal)) return;
             if (invocationOperation.TargetMethod.Parameters.Length < 2) return;
-            
-            if (!invocationOperation.TargetMethod.Parameters[0].Type.Name.Equals(nameof(Type), StringComparison.OrdinalIgnoreCase)) return;
-            
-            if (!invocationOperation.TargetMethod.Parameters[1].Type.Name.Equals(nameof(String), StringComparison.OrdinalIgnoreCase)) return;
-            
+            if (!invocationOperation.TargetMethod.Parameters[0].Type.Equals(typeSymbol, SymbolEqualityComparer.Default)) return;
+            if (!invocationOperation.TargetMethod.Parameters[1].Type.Equals(stringSymbol, SymbolEqualityComparer.Default)) return;
+
             var typeInfos = RoslynHelper.GetTypeInfos(invocationOperation.SemanticModel, invocationExpressionSyntax.ArgumentList.Arguments[0], context.CancellationToken);
             if (typeInfos.IsEmpty) return;
             

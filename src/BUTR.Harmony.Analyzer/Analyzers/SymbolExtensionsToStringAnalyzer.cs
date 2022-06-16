@@ -2,6 +2,7 @@
 using BUTR.Harmony.Analyzer.Utils;
 
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.Operations;
@@ -34,44 +35,16 @@ namespace BUTR.Harmony.Analyzer.Analyzers
         private static void AnalyzeInvocationSuggestions(OperationAnalysisContext context)
         {
             if (context.Operation is not IInvocationOperation invocationOperation) return;
+            if (invocationOperation.Syntax is not InvocationExpressionSyntax invocationExpressionSyntax) return;
             if (!invocationOperation.TargetMethod.ContainingType.Name.StartsWith("SymbolExtensions", StringComparison.Ordinal)) return;
-            if (invocationOperation.Syntax is not InvocationExpressionSyntax invocationExpressionSyntax) return;
-            if (invocationExpressionSyntax.ArgumentList.Arguments.Count != 1) return;
-            
+            if (invocationOperation.TargetMethod.Parameters.Length != 1) return;
+
             if (invocationExpressionSyntax.ArgumentList.Arguments[0].Expression is not LambdaExpressionSyntax lambdaExpressionSyntax) return;
-            switch (lambdaExpressionSyntax.Body)
-            {
-                case MemberAccessExpressionSyntax:
-                    AnalyzeFieldProperties(context, invocationOperation, lambdaExpressionSyntax);
-                    break;
-                case InvocationExpressionSyntax:
-                    AnalyzeMethod(context, invocationOperation, lambdaExpressionSyntax);
-                    break;
-            }
-        }
-        
-        private static void AnalyzeFieldProperties(OperationAnalysisContext context, IInvocationOperation invocationOperation, LambdaExpressionSyntax lambdaExpressionSyntax)
-        {
-            if (invocationOperation.Syntax is not InvocationExpressionSyntax invocationExpressionSyntax) return;
-            
-            if (lambdaExpressionSyntax.Body is not MemberAccessExpressionSyntax memberAccessExpressionSyntax) return;
-            var typeInfo = invocationOperation.SemanticModel.GetTypeInfo(memberAccessExpressionSyntax);
-    
-            var ctx = new GenericContext(context.Compilation, () => invocationExpressionSyntax.ArgumentList.Arguments[0].GetLocation(), context.ReportDiagnostic);
-            ctx.ReportDiagnostic(RuleIdentifiers.ReportSymbolExtensionsToString(ctx, NameFormatter.ReflectionName(typeInfo.Type)));
-        }
-        
-        private static void AnalyzeMethod(OperationAnalysisContext context, IInvocationOperation invocationOperation, LambdaExpressionSyntax lambdaExpressionSyntax)
-        {
-            if (invocationOperation.Syntax is not InvocationExpressionSyntax invocationExpressionSyntax) return;
-            
-            if (lambdaExpressionSyntax.Body is not InvocationExpressionSyntax lambdaInvocationExpressionSyntax) return;
-            if (lambdaInvocationExpressionSyntax.Expression is not MemberAccessExpressionSyntax methodMemberAccessExpressionSyntax) return;
-            if (methodMemberAccessExpressionSyntax.Expression is not MemberAccessExpressionSyntax typeMemberAccessExpressionSyntax) return;
-            var typeInfo = invocationOperation.SemanticModel.GetTypeInfo(typeMemberAccessExpressionSyntax);
+            if (invocationOperation.SemanticModel.GetSymbolInfo(lambdaExpressionSyntax.Body).Symbol is not { } methodSymbol) return;
+            if (methodSymbol.ContainingType is null) return;
 
             var ctx = new GenericContext(context.Compilation, () => invocationExpressionSyntax.ArgumentList.Arguments[0].GetLocation(), context.ReportDiagnostic);
-            ctx.ReportDiagnostic(RuleIdentifiers.ReportSymbolExtensionsToString(ctx, NameFormatter.ReflectionName(typeInfo.Type)));
+            ctx.ReportDiagnostic(RuleIdentifiers.ReportSymbolExtensionsToString(ctx, NameFormatter.ReflectionName(methodSymbol.ContainingType)));
         }
     }
 }

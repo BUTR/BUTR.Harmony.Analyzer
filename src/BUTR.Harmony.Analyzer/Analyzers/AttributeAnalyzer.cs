@@ -22,8 +22,8 @@ namespace BUTR.Harmony.Analyzer.Analyzers
             RuleIdentifiers.WrongTypeRule,
             RuleIdentifiers.ConstructorRule,
             RuleIdentifiers.StaticConstructorRule,
-            RuleIdentifiers.NotInstanceFieldRule, // TODO: Split
-            RuleIdentifiers.NotStaticFieldRule // TODO: Split
+            RuleIdentifiers.NotInstanceFieldRule,
+            RuleIdentifiers.NotStaticFieldRule
         );
 
         public override void Initialize(AnalysisContext context)
