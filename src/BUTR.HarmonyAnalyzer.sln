@@ -4,6 +4,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 VisualStudioVersion = 17.0.31912.275
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "root", "root", "{80BEED84-AEFA-40A8-8BA8-A203102F270E}"
+	ProjectSection(SolutionItems) = preProject
+		..\README.md = ..\README.md
+	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{99589C33-6001-4473-AE4E-CFE4CB718C29}"
 EndProject
@@ -16,6 +19,24 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{2538F3C1-4AF6-4138-8E24-B7463D4824A5}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BUTR.Harmony.Analyzer.Test", "BUTR.Harmony.Analyzer.Test\BUTR.Harmony.Analyzer.Test.csproj", "{E692E364-93A0-44CA-8204-988534D97F55}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docs", "docs", "{004804A2-AE32-4258-9FDC-6AD4A50C151F}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Rules", "Rules", "{31BF450B-1A98-4D2F-8FE6-4166FE3A4C06}"
+	ProjectSection(SolutionItems) = preProject
+		..\docs\Rules\BHA0001.md = ..\docs\Rules\BHA0001.md
+		..\docs\Rules\BHA0002.md = ..\docs\Rules\BHA0002.md
+		..\docs\Rules\BHA0003.md = ..\docs\Rules\BHA0003.md
+		..\docs\Rules\BHA0004.md = ..\docs\Rules\BHA0004.md
+		..\docs\Rules\BHA0005.md = ..\docs\Rules\BHA0005.md
+		..\docs\Rules\BHA0006.md = ..\docs\Rules\BHA0006.md
+		..\docs\Rules\BHA0007.md = ..\docs\Rules\BHA0007.md
+		..\docs\Rules\BHA0008.md = ..\docs\Rules\BHA0008.md
+		..\docs\Rules\BHA0009.md = ..\docs\Rules\BHA0009.md
+		..\docs\Rules\BHA0010.md = ..\docs\Rules\BHA0010.md
+		..\docs\Rules\BHA0011.md = ..\docs\Rules\BHA0011.md
+		..\docs\Rules\BHA0012.md = ..\docs\Rules\BHA0012.md
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -50,6 +71,8 @@ Global
 		{724217F6-B03E-49DC-8D92-3FCB2505EF78} = {99589C33-6001-4473-AE4E-CFE4CB718C29}
 		{2538F3C1-4AF6-4138-8E24-B7463D4824A5} = {80BEED84-AEFA-40A8-8BA8-A203102F270E}
 		{E692E364-93A0-44CA-8204-988534D97F55} = {2538F3C1-4AF6-4138-8E24-B7463D4824A5}
+		{004804A2-AE32-4258-9FDC-6AD4A50C151F} = {80BEED84-AEFA-40A8-8BA8-A203102F270E}
+		{31BF450B-1A98-4D2F-8FE6-4166FE3A4C06} = {004804A2-AE32-4258-9FDC-6AD4A50C151F}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {89569BF2-01A2-476A-9AD0-B27451EC90D4}

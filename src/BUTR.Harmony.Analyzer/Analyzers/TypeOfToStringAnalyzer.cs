@@ -36,8 +36,7 @@ namespace BUTR.Harmony.Analyzer.Analyzers
         {
             if (context.Compilation.GetTypeByMetadataName(typeof(Type).FullName) is not { } typeSymbol) return;
             if (context.Compilation.GetTypeByMetadataName(typeof(string).FullName) is not { } stringSymbol) return;
-            if (context.Operation is not IInvocationOperation invocationOperation) return;
-            if (invocationOperation.Syntax is not InvocationExpressionSyntax invocationExpressionSyntax) return;
+            if (context.Operation is not IInvocationOperation { Syntax: InvocationExpressionSyntax invocationExpressionSyntax } invocationOperation) return;
             if (!invocationOperation.TargetMethod.ContainingType.Name.StartsWith("AccessTools", StringComparison.Ordinal)) return;
             if (invocationOperation.TargetMethod.Parameters.Length < 2) return;
             if (!invocationOperation.TargetMethod.Parameters[0].Type.Equals(typeSymbol, SymbolEqualityComparer.Default)) return;

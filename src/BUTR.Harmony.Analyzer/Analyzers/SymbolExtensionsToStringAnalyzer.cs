@@ -34,8 +34,7 @@ namespace BUTR.Harmony.Analyzer.Analyzers
 
         private static void AnalyzeInvocationSuggestions(OperationAnalysisContext context)
         {
-            if (context.Operation is not IInvocationOperation invocationOperation) return;
-            if (invocationOperation.Syntax is not InvocationExpressionSyntax invocationExpressionSyntax) return;
+            if (context.Operation is not IInvocationOperation { Syntax: InvocationExpressionSyntax invocationExpressionSyntax } invocationOperation) return;
             if (!invocationOperation.TargetMethod.ContainingType.Name.StartsWith("SymbolExtensions", StringComparison.Ordinal)) return;
             if (invocationOperation.TargetMethod.Parameters.Length != 1) return;
 
