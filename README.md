@@ -70,6 +70,7 @@ The following API's are supported:
 * PropertyGetter/DeclaredPropertyGetter
 * PropertySetter/DeclaredPropertySetter
 * Delegate/DeclaredDelegate
+* FieldRefAccess
 * StaticFieldRefAccess
 * StructFieldRefAccess
 
