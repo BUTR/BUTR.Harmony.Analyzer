@@ -65,48 +65,48 @@ namespace BUTR.Harmony.Analyzer.Test
         ///
 
         [DataTestMethod]
-        [DataRow("GetDeclaredDelegate", true,  MemberTestType.TypeOf, "BUTR.Harmony.Analyzer.Test.TestClass", "_method", "CallInstanceMethod")]
-        [DataRow("GetDelegate", true,  MemberTestType.TypeOf, "BUTR.Harmony.Analyzer.Test.TestClass", "_method", "CallInstanceMethod")]
-        
-        [DataRow("GetDeclaredDelegate", true,  MemberTestType.String, "BUTR.Harmony.Analyzer.Test.TestClass", "_method", "CallInstanceMethod")]
-        [DataRow("GetDelegate", true,  MemberTestType.String, "BUTR.Harmony.Analyzer.Test.TestClass", "_method", "CallInstanceMethod")]
-        
+        [DataRow("GetDeclaredDelegate", true, MemberTestType.TypeOf, "BUTR.Harmony.Analyzer.Test.TestClass", "_method", "CallInstanceMethod")]
+        [DataRow("GetDelegate", true, MemberTestType.TypeOf, "BUTR.Harmony.Analyzer.Test.TestClass", "_method", "CallInstanceMethod")]
+
+        [DataRow("GetDeclaredDelegate", true, MemberTestType.String, "BUTR.Harmony.Analyzer.Test.TestClass", "_method", "CallInstanceMethod")]
+        [DataRow("GetDelegate", true, MemberTestType.String, "BUTR.Harmony.Analyzer.Test.TestClass", "_method", "CallInstanceMethod")]
+
         [DataRow("GetDeclaredDelegate", false, MemberTestType.TypeOf, "BUTR.Harmony.Analyzer.Test.TestClass", "NonExistingMethod", "SetInstancePropBool")]
         [DataRow("GetDelegate", false, MemberTestType.TypeOf, "BUTR.Harmony.Analyzer.Test.TestClass", "NonExistingMethod", "SetInstancePropBool")]
-        
+
         [DataRow("GetDeclaredDelegate", false, MemberTestType.String, "BUTR.Harmony.Analyzer.Test.TestClass", "NonExistingMethod", "SetInstancePropBool")]
         [DataRow("GetDelegate", false, MemberTestType.String, "BUTR.Harmony.Analyzer.Test.TestClass", "NonExistingMethod", "SetInstancePropBool")]
         public async Task Delegate_Default(string method, bool isCorrect, MemberTestType testType, string type, string member, string @delegate)
         {
             await CreateProjectBuilder().WithSourceCode(SourceCode(method, isCorrect, testType, type, member, @delegate)).ValidateAsync();
         }
-        
+
         [DataTestMethod]
-        [DataRow("GetDeclaredPropertyGetterDelegate", true,  MemberTestType.TypeOf, "BUTR.Harmony.Analyzer.Test.TestClass", "_property", "GetInstancePropBool")]
-        [DataRow("GetPropertyGetterDelegate", true,  MemberTestType.TypeOf, "BUTR.Harmony.Analyzer.Test.TestClass", "_property", "GetInstancePropBool")]
-        [DataRow("GetDeclaredPropertyGetterDelegate", true,  MemberTestType.String, "BUTR.Harmony.Analyzer.Test.TestClass", "_property", "GetInstancePropBool")]
-        [DataRow("GetPropertyGetterDelegate", true,  MemberTestType.String, "BUTR.Harmony.Analyzer.Test.TestClass", "_property", "GetInstancePropBool")]
-        
-        [DataRow("GetDeclaredPropertyGetterDelegate", true,  MemberTestType.TypeOf, "BUTR.Harmony.Analyzer.Test.TestClass", "_propertyGet", "GetInstancePropBool")]
-        [DataRow("GetPropertyGetterDelegate", true,  MemberTestType.TypeOf, "BUTR.Harmony.Analyzer.Test.TestClass", "_propertyGet", "GetInstancePropBool")]
-        [DataRow("GetDeclaredPropertyGetterDelegate", true,  MemberTestType.String, "BUTR.Harmony.Analyzer.Test.TestClass", "_propertyGet", "GetInstancePropBool")]
-        [DataRow("GetPropertyGetterDelegate", true,  MemberTestType.String, "BUTR.Harmony.Analyzer.Test.TestClass", "_propertyGet", "GetInstancePropBool")]
-        
+        [DataRow("GetDeclaredPropertyGetterDelegate", true, MemberTestType.TypeOf, "BUTR.Harmony.Analyzer.Test.TestClass", "_property", "GetInstancePropBool")]
+        [DataRow("GetPropertyGetterDelegate", true, MemberTestType.TypeOf, "BUTR.Harmony.Analyzer.Test.TestClass", "_property", "GetInstancePropBool")]
+        [DataRow("GetDeclaredPropertyGetterDelegate", true, MemberTestType.String, "BUTR.Harmony.Analyzer.Test.TestClass", "_property", "GetInstancePropBool")]
+        [DataRow("GetPropertyGetterDelegate", true, MemberTestType.String, "BUTR.Harmony.Analyzer.Test.TestClass", "_property", "GetInstancePropBool")]
+
+        [DataRow("GetDeclaredPropertyGetterDelegate", true, MemberTestType.TypeOf, "BUTR.Harmony.Analyzer.Test.TestClass", "_propertyGet", "GetInstancePropBool")]
+        [DataRow("GetPropertyGetterDelegate", true, MemberTestType.TypeOf, "BUTR.Harmony.Analyzer.Test.TestClass", "_propertyGet", "GetInstancePropBool")]
+        [DataRow("GetDeclaredPropertyGetterDelegate", true, MemberTestType.String, "BUTR.Harmony.Analyzer.Test.TestClass", "_propertyGet", "GetInstancePropBool")]
+        [DataRow("GetPropertyGetterDelegate", true, MemberTestType.String, "BUTR.Harmony.Analyzer.Test.TestClass", "_propertyGet", "GetInstancePropBool")]
+
         [DataRow("GetDeclaredPropertyGetterDelegate", false, MemberTestType.TypeOf, "BUTR.Harmony.Analyzer.Test.TestClass", "NonExistingProperty", "GetInstancePropBool")]
         [DataRow("GetPropertyGetterDelegate", false, MemberTestType.TypeOf, "BUTR.Harmony.Analyzer.Test.TestClass", "NonExistingProperty", "GetInstancePropBool")]
         [DataRow("GetDeclaredPropertyGetterDelegate", false, MemberTestType.String, "BUTR.Harmony.Analyzer.Test.TestClass", "NonExistingProperty", "GetInstancePropBool")]
         [DataRow("GetPropertyGetterDelegate", false, MemberTestType.String, "BUTR.Harmony.Analyzer.Test.TestClass", "NonExistingProperty", "GetInstancePropBool")]
-        
-        [DataRow("GetDeclaredPropertySetterDelegate", true,  MemberTestType.TypeOf, "BUTR.Harmony.Analyzer.Test.TestClass", "_property", "SetInstancePropBool")]
-        [DataRow("GetPropertySetterDelegate", true,  MemberTestType.TypeOf, "BUTR.Harmony.Analyzer.Test.TestClass", "_property", "SetInstancePropBool")]
-        [DataRow("GetDeclaredPropertySetterDelegate", true,  MemberTestType.String, "BUTR.Harmony.Analyzer.Test.TestClass", "_property", "SetInstancePropBool")]
-        [DataRow("GetPropertySetterDelegate", true,  MemberTestType.String, "BUTR.Harmony.Analyzer.Test.TestClass", "_property", "SetInstancePropBool")]
-        
+
+        [DataRow("GetDeclaredPropertySetterDelegate", true, MemberTestType.TypeOf, "BUTR.Harmony.Analyzer.Test.TestClass", "_property", "SetInstancePropBool")]
+        [DataRow("GetPropertySetterDelegate", true, MemberTestType.TypeOf, "BUTR.Harmony.Analyzer.Test.TestClass", "_property", "SetInstancePropBool")]
+        [DataRow("GetDeclaredPropertySetterDelegate", true, MemberTestType.String, "BUTR.Harmony.Analyzer.Test.TestClass", "_property", "SetInstancePropBool")]
+        [DataRow("GetPropertySetterDelegate", true, MemberTestType.String, "BUTR.Harmony.Analyzer.Test.TestClass", "_property", "SetInstancePropBool")]
+
         [DataRow("GetDeclaredPropertySetterDelegate", false, MemberTestType.TypeOf, "BUTR.Harmony.Analyzer.Test.TestClass", "_propertyGet", "SetInstancePropBool")]
         [DataRow("GetPropertySetterDelegate", false, MemberTestType.TypeOf, "BUTR.Harmony.Analyzer.Test.TestClass", "_propertyGet", "SetInstancePropBool")]
         [DataRow("GetDeclaredPropertySetterDelegate", false, MemberTestType.String, "BUTR.Harmony.Analyzer.Test.TestClass", "_propertyGet", "SetInstancePropBool")]
         [DataRow("GetPropertySetterDelegate", false, MemberTestType.String, "BUTR.Harmony.Analyzer.Test.TestClass", "_propertyGet", "SetInstancePropBool")]
-        
+
         [DataRow("GetDeclaredPropertySetterDelegate", false, MemberTestType.TypeOf, "BUTR.Harmony.Analyzer.Test.TestClass", "NonExistingProperty", "SetInstancePropBool")]
         [DataRow("GetPropertySetterDelegate", false, MemberTestType.TypeOf, "BUTR.Harmony.Analyzer.Test.TestClass", "NonExistingProperty", "SetInstancePropBool")]
         [DataRow("GetDeclaredPropertySetterDelegate", false, MemberTestType.String, "BUTR.Harmony.Analyzer.Test.TestClass", "NonExistingProperty", "SetInstancePropBool")]
@@ -115,13 +115,13 @@ namespace BUTR.Harmony.Analyzer.Test
         {
             await CreateProjectBuilder().WithSourceCode(SourceCode(method, isCorrect, testType, type, member, @delegate)).ValidateAsync();
         }
-        
+
         [DataTestMethod]
         [DataRow("GetDeclaredConstructorDelegate", false, MemberTestType.TypeOfOnly, "BUTR.Harmony.Analyzer.Test.TestClass", "", "CreateTestClass")]
         [DataRow("GetConstructorDelegate", true, MemberTestType.TypeOfOnly, "BUTR.Harmony.Analyzer.Test.TestClass", "", "CreateTestClass")]
         [DataRow("GetDeclaredConstructorDelegate", false, MemberTestType.StringOnly, "BUTR.Harmony.Analyzer.Test.TestClass", "", "CreateTestClass")]
         [DataRow("GetConstructorDelegate", true, MemberTestType.StringOnly, "BUTR.Harmony.Analyzer.Test.TestClass", "", "CreateTestClass")]
-        
+
         [DataRow("GetDeclaredConstructorDelegate", false, MemberTestType.TypeOfOnly, "BUTR.Harmony.Analyzer.Test.TestClass", "typeof(int)", "CreateTestClassInt")]
         [DataRow("GetConstructorDelegate", false, MemberTestType.TypeOfOnly, "BUTR.Harmony.Analyzer.Test.TestClass", "typeof(int)", "CreateTestClassInt")]
         [DataRow("GetDeclaredConstructorDelegate", false, MemberTestType.StringOnly, "BUTR.Harmony.Analyzer.Test.TestClass", "typeof(int)", "CreateTestClassInt")]

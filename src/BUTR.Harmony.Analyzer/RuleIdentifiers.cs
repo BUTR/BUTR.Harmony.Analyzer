@@ -106,7 +106,7 @@ namespace BUTR.Harmony.Analyzer
             isEnabledByDefault: true,
             description: "",
             helpLinkUri: GetHelpUri(MissingStaticConstructor));
-        
+
         internal static readonly DiagnosticDescriptor NotInstanceFieldRule = new(
             NotInstanceField,
             title: "Field is static",
@@ -116,7 +116,7 @@ namespace BUTR.Harmony.Analyzer
             isEnabledByDefault: true,
             description: "",
             helpLinkUri: GetHelpUri(NotInstanceField));
-        
+
         internal static readonly DiagnosticDescriptor NotStaticFieldRule = new(
             NotStaticField,
             title: "Field is not static",
@@ -126,7 +126,7 @@ namespace BUTR.Harmony.Analyzer
             isEnabledByDefault: true,
             description: "",
             helpLinkUri: GetHelpUri(NotStaticField));
-        
+
         internal static readonly DiagnosticDescriptor TypeOfToStringRule = new(
             TypeOfToString,
             title: "Use text based representation instead of typeof",
@@ -136,7 +136,7 @@ namespace BUTR.Harmony.Analyzer
             isEnabledByDefault: true,
             description: "",
             helpLinkUri: GetHelpUri(TypeOfToString));
-        
+
         internal static readonly DiagnosticDescriptor SymbolExtensionsToStringRule = new(
             SymbolExtensionsToString,
             title: "Use text based representation instead of SymbolExtensions",
@@ -170,16 +170,16 @@ namespace BUTR.Harmony.Analyzer
 
         internal static Diagnostic ReportMissingStaticConstructor(GenericContext context, string typeName) =>
             DiagnosticUtils.CreateDiagnostic(StaticConstructorRule, context, typeName);
-        
+
         internal static Diagnostic ReportNotInstanceField(GenericContext context, string fieldName) =>
             DiagnosticUtils.CreateDiagnostic(NotInstanceFieldRule, context, fieldName);
-        
+
         internal static Diagnostic ReportNotStaticField(GenericContext context, string fieldName) =>
             DiagnosticUtils.CreateDiagnostic(NotStaticFieldRule, context, fieldName);
-        
+
         internal static Diagnostic ReportTypeOfToString(GenericContext context, string typeName) =>
             DiagnosticUtils.CreateDiagnostic(TypeOfToStringRule, context, typeName);
-        
+
         internal static Diagnostic ReportSymbolExtensionsToString(GenericContext context, string typeName) =>
             DiagnosticUtils.CreateDiagnostic(SymbolExtensionsToStringRule, context, typeName);
     }

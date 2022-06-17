@@ -54,7 +54,7 @@ namespace BUTR.Harmony.Analyzer.Test
             var variable = [||]HarmonyLib.AccessTools.{method}({GetArg(testType, type, $"{member}1")}) ??
                            [||]HarmonyLib.AccessTools.{method}({GetArg(testType, type, $"{member}2")}) ??
                            [||]HarmonyLib.AccessTools.{method}({GetArg(testType, type, $"{member}3")});";
-        
+
         ///
 
         [TestMethod]
@@ -68,7 +68,7 @@ namespace BUTR.Harmony.Analyzer.Test
             await CreateProjectBuilder().WithSourceCode(SourceCodeMultiple(PartialMulti(method, testType, type, member))).ValidateAsync();
             await CreateProjectBuilder().WithSourceCode(SourceCodeMultiple(InvalidMulti(method, testType, type, member))).ValidateAsync();
         }
-        
+
         [TestMethod]
         [DataRow("Property", MemberTestType.TypeOf, "BUTR.Harmony.Analyzer.Test.TestClass", "_property")]
         [DataRow("Property", MemberTestType.String, "BUTR.Harmony.Analyzer.Test.TestClass", "_property")]

@@ -44,7 +44,7 @@ namespace BUTR.Harmony.Analyzer.Analyzers
 
             var typeInfos = RoslynHelper.GetTypeInfos(invocationOperation.SemanticModel, invocationExpressionSyntax.ArgumentList.Arguments[0], context.CancellationToken);
             if (typeInfos.IsEmpty) return;
-            
+
             var ctx = new GenericContext(context.Compilation, () => invocationExpressionSyntax.ArgumentList.Arguments[0].GetLocation(), context.ReportDiagnostic);
             ctx.ReportDiagnostic(RuleIdentifiers.ReportTypeOfToString(ctx, NameFormatter.ReflectionName(typeInfos.First())));
         }

@@ -7,7 +7,7 @@ namespace BUTR.Harmony.Analyzer.Test.Metadata
     public partial class AccessToolsAnalyzerTest
     {
         public enum FieldRefTestType { Type, String }
-        
+
         private static string SourceCode(string method, bool isCorrect, FieldRefTestType testType, string objectType, string fieldType, string fieldName) => @$"
 {HarmonyBase}
 
@@ -17,11 +17,11 @@ namespace BUTR.Harmony.Analyzer.Test
     {{
         public static void TestMethod()
         {{
-            {(testType switch   
-            {
-                FieldRefTestType.Type => @$"{(isCorrect ? "" : "[||]")}HarmonyLib.AccessTools.{method}<{objectType}, {fieldType}>(""{fieldName}"");",
-                FieldRefTestType.String => @$"{(isCorrect ? "" : "[||]")}HarmonyLib.AccessTools.{method}<{fieldType}>(""{objectType}:{fieldName}"");"
-            })}
+            {(testType switch
+        {
+            FieldRefTestType.Type => @$"{(isCorrect ? "" : "[||]")}HarmonyLib.AccessTools.{method}<{objectType}, {fieldType}>(""{fieldName}"");",
+            FieldRefTestType.String => @$"{(isCorrect ? "" : "[||]")}HarmonyLib.AccessTools.{method}<{fieldType}>(""{objectType}:{fieldName}"");"
+        })}
         }}
     }}
 }}

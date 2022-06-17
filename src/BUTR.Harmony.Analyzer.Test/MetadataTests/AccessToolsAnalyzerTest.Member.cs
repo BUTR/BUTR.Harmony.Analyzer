@@ -201,9 +201,9 @@ namespace BUTR.Harmony.Analyzer.Test
         {
             await CreateProjectBuilder().WithSourceCode(SourceCode(method, isCorrect, testType, type, member)).ValidateAsync();
         }
-        
+
         ///
-        
+
         [DataTestMethod]
         [DataRow("Constructor", true, MemberTestType.TypeOfOnly, "System.Text.Json.JsonException", "typeof(string)")]
         [DataRow("DeclaredConstructor", true, MemberTestType.TypeOfOnly, "System.Text.Json.JsonException", "typeof(string)")]
@@ -214,7 +214,7 @@ namespace BUTR.Harmony.Analyzer.Test
         {
             await CreateProjectBuilder().WithSourceCode(SourceCode(method, isCorrect, testType, type, member)).ValidateAsync();
         }
-        
+
         [DataTestMethod]
         [DataRow("DeclaredConstructor", false, MemberTestType.TypeOfOnly, "System.Text.Json.Nodes.JsonArray", "typeof(string)")]
         [DataRow("DeclaredConstructor", false, MemberTestType.StringOnly, "System.Text.Json.Nodes.JsonArray", "typeof(string)")]

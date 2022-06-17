@@ -20,7 +20,7 @@ namespace BUTR.Harmony.Analyzer.Utils
             try
             {
                 memberFlags &= ~MemberFlags.Delegate;
-                
+
                 var checkBase = !memberFlags.HasFlag(MemberFlags.Declared);
                 memberFlags &= ~MemberFlags.Declared;
 
@@ -138,7 +138,7 @@ namespace BUTR.Harmony.Analyzer.Utils
                     yield return RuleIdentifiers.ReportNotInstanceField(context, fieldName);
                     yield break;
                 }
-            
+
                 if (staticCheck && !objectFieldDefinition.Attributes.HasFlag(FieldAttributes.Static))
                 {
                     yield return RuleIdentifiers.ReportNotStaticField(context, fieldName);

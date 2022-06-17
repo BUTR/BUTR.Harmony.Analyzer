@@ -76,13 +76,13 @@ namespace BUTR.Harmony.Analyzer.Utils
                 var split = typeSemicolonMember.Split(':');
                 var typeName = split[0];
                 var memberName = split[1];
-                
+
                 var type = FindAndReportForType(context, typeName);
                 if (type is null)
                 {
                     return;
                 }
-                
+
                 diagnostics.Add(type, DiagnosticsForMember(context, type, memberFlags, memberName, null, null).ToImmutableArray());
             }
 
@@ -107,7 +107,7 @@ namespace BUTR.Harmony.Analyzer.Utils
                 {
                     continue;
                 }
-                
+
                 diagnostics.Add(type, DiagnosticsForMember(context, type, memberFlags, string.Empty, paramTypes, null).ToImmutableArray());
             }
 
@@ -121,7 +121,7 @@ namespace BUTR.Harmony.Analyzer.Utils
                 }
             }
         }
-        
+
         public static INamedTypeSymbol? FindAndReportForType(GenericContext context, string typeName)
         {
             var type = context.Compilation.GetAssemblies().Select(a => a.GetTypeByMetadataName(typeName)).FirstOrDefault(t => t is not null);
