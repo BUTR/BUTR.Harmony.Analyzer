@@ -79,9 +79,9 @@ We provide conversions from static typed check from AccessTools and SymbolExtens
 
 We believe that static typed member check (via `typeof(Type)`) adds more problems than it solves, because we are bound to the public ABI of the library that is patched.  
 Instead, we suggest to use dynamic typed member check (via a string containing the full name of the type).  
-Common sense would suggest that this is a bad idea, since you can't check whether the member you want to get get exists, but the sole purpose of `BUTR.Harmony.Analyzer` is to solve this exact problem by creating warnings at compile time if the type was not found.
+Common sense would suggest that this is a bad idea, since you can't check whether the member you want to get exists, but the sole purpose of `BUTR.Harmony.Analyzer` is to solve this exact problem by creating warnings at compile time if the type was not found.
 
 One of the most common problems that is solved is type namespace moving, since it breaks the public ABI.  
-Usually, the modder won't notice that a type was moved if both old and new namespaces are referenced and the full name of the type is not used.  
+Usually, the modder won't notice that a type was moved if both old and new namespaces are referenced and the full name of the type is not used. It will compile, but won't be binary compatible.  
 The dynamic typed check requires the full name of the type, so a namespace change will create a warning that the type does not exists.  
 There is a edge case that is not covered by the analyzer - moving a type within different assemblies with keeping the exact namespace.
