@@ -47,12 +47,12 @@ namespace BUTR.Harmony.Analyzer.Analyzers
                 AnalyzeTypeByName(ctx, context, invocationOperation, invocation);
                 return diagnostics.ToImmutable();
             }
-            
+
             if (methodName.StartsWith("Get".AsSpan()))
             {
                 methodName = methodName.Slice(3);
             }
-            
+
             if (methodName.StartsWith("Declared".AsSpan()))
             {
                 flags |= MemberFlags.Declared;
@@ -99,7 +99,7 @@ namespace BUTR.Harmony.Analyzer.Analyzers
                 methodName = methodName.Slice(8);
             }
 
-            if (!flags.HasFlag(MemberFlags.Field) &&!flags.HasFlag(MemberFlags.Property) && !flags.HasFlag(MemberFlags.Constructor))
+            if (!flags.HasFlag(MemberFlags.Field) && !flags.HasFlag(MemberFlags.Property) && !flags.HasFlag(MemberFlags.Constructor))
                 flags |= MemberFlags.Method;
 
             if (flags.HasFlag(MemberFlags.Constructor))
@@ -128,7 +128,7 @@ namespace BUTR.Harmony.Analyzer.Analyzers
                 var paramTypes = ImmutableArray<ITypeSymbol>.Empty;
                 if (invocation.ArgumentList.Arguments.Count == 2 && invocation.ArgumentList.Arguments[1].Expression is ArrayCreationExpressionSyntax { Initializer: { } initializer })
                     paramTypes = RoslynHelper.GetTypeInfosFromInitializer(operation.SemanticModel, initializer, context.CancellationToken);
-                
+
                 MemberHelper.FindAndReportForConstructor(ctx, typeInfos.Select(NameFormatter.ReflectionName).ToImmutableArray(), paramTypes, memberFlags);
             }
             else if (operation.TargetMethod.Parameters[0].Type.Equals(stringSymbol, SymbolEqualityComparer.Default))
@@ -141,11 +141,11 @@ namespace BUTR.Harmony.Analyzer.Analyzers
                 var paramTypes = ImmutableArray<ITypeSymbol>.Empty;
                 if (invocation.ArgumentList.Arguments.Count == 2 && invocation.ArgumentList.Arguments[1].Expression is ArrayCreationExpressionSyntax { Initializer: { } initializer })
                     paramTypes = RoslynHelper.GetTypeInfosFromInitializer(operation.SemanticModel, initializer, context.CancellationToken);
-                
+
                 MemberHelper.FindAndReportForConstructor(ctx, ImmutableArray.Create<string>(typeName), paramTypes, memberFlags);
             }
         }
-        
+
         private static void AnalyzeMembers(GenericContext ctx, OperationAnalysisContext context, IInvocationOperation operation, InvocationExpressionSyntax invocation, MemberFlags memberFlags)
         {
             if (context.Compilation.GetTypeByMetadataName(typeof(Type).FullName) is not { } typeSymbol) return;
@@ -178,11 +178,11 @@ namespace BUTR.Harmony.Analyzer.Analyzers
             if (context.Compilation.GetTypeByMetadataName(typeof(string).FullName) is not { } stringSymbol) return;
             if (operation.TargetMethod.Parameters.Length != 1) return;
             if (!operation.TargetMethod.Parameters[0].Type.Equals(stringSymbol, SymbolEqualityComparer.Default)) return;
-            
+
             if (operation.TargetMethod.Arity == 1)
             {
                 var fieldType = operation.TargetMethod.TypeArguments[0];
-                    
+
                 var typeSemicolonMember = RoslynHelper.GetString(operation.SemanticModel, invocation.ArgumentList.Arguments[0], context.CancellationToken);
                 if (typeSemicolonMember is null) return;
 
@@ -204,11 +204,11 @@ namespace BUTR.Harmony.Analyzer.Analyzers
             if (context.Compilation.GetTypeByMetadataName(typeof(string).FullName) is not { } stringSymbol) return;
             if (operation.TargetMethod.Parameters.Length != 1) return;
             if (!operation.TargetMethod.Parameters[0].Type.Equals(stringSymbol, SymbolEqualityComparer.Default)) return;
-            
+
             var typeName = RoslynHelper.GetString(operation.SemanticModel, invocation.ArgumentList.Arguments[0], context.CancellationToken);
             if (typeName is null) return;
 
             MemberHelper.FindAndReportForType(ctx, typeName);
-        } 
+        }
     }
 }

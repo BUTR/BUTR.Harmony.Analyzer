@@ -30,11 +30,11 @@ namespace BUTR.Harmony.Analyzer.Test
     {{
         public static void TestMethod()
         {{
-            {(testType switch   
-                {
-                    FieldRefTestType.Type => @$"{(isCorrect ? "" : "[||]")}HarmonyLib.AccessTools.{method}<{objectType}, {fieldType}>(""{fieldName}"");",
-                    FieldRefTestType.String => @$"{(isCorrect ? "" : "[||]")}HarmonyLib.AccessTools.{method}<{fieldType}>(""{objectType}:{fieldName}"");"
-                })}
+            {(testType switch
+        {
+            FieldRefTestType.Type => @$"{(isCorrect ? "" : "[||]")}HarmonyLib.AccessTools.{method}<{objectType}, {fieldType}>(""{fieldName}"");",
+            FieldRefTestType.String => @$"{(isCorrect ? "" : "[||]")}HarmonyLib.AccessTools.{method}<{fieldType}>(""{objectType}:{fieldName}"");"
+        })}
         }}
     }}
 }}
@@ -89,7 +89,7 @@ namespace BUTR.Harmony.Analyzer.Test
         {
             await CreateProjectBuilder().WithSourceCode(SourceCode(method, isCorrect, testType, objectType, fieldType, fieldName)).ValidateAsync();
         }
-        
+
         [DataTestMethod]
         [DataRow("StaticFieldRefAccess", false, FieldRefTestType.Type, "BUTR.Harmony.Analyzer.Test.TestClass", "string", "_field")]
         [DataRow("StaticFieldRefAccess", false, FieldRefTestType.String, "BUTR.Harmony.Analyzer.Test.TestClass", "string", "_field")]
@@ -97,7 +97,7 @@ namespace BUTR.Harmony.Analyzer.Test
         {
             await CreateProjectBuilder().WithSourceCode(SourceCode(method, isCorrect, testType, objectType, fieldType, fieldName)).ValidateAsync();
         }
-        
+
         [DataTestMethod]
         [DataRow("FieldRefAccess", false, FieldRefTestType.Type, "BUTR.Harmony.Analyzer.Test.TestClass", "string", "_staticField")]
         [DataRow("FieldRefAccess", false, FieldRefTestType.String, "BUTR.Harmony.Analyzer.Test.TestClass", "string", "_staticField")]
@@ -105,18 +105,18 @@ namespace BUTR.Harmony.Analyzer.Test
         {
             await CreateProjectBuilder().WithSourceCode(SourceCode(method, isCorrect, testType, objectType, fieldType, fieldName)).ValidateAsync();
         }
-        
+
         [DataTestMethod]
         [DataRow("FieldRefAccess", true, FieldRefTestType.Type, "BUTR.Harmony.Analyzer.Test.TestClass", "string", "_field")]
         [DataRow("FieldRefAccess", true, FieldRefTestType.String, "BUTR.Harmony.Analyzer.Test.TestClass", "string", "_field")]
         [DataRow("StaticFieldRefAccess", true, FieldRefTestType.Type, "BUTR.Harmony.Analyzer.Test.TestClass", "string", "_staticField")]
         [DataRow("StaticFieldRefAccess", true, FieldRefTestType.String, "BUTR.Harmony.Analyzer.Test.TestClass", "string", "_staticField")]
-        
+
         [DataRow("FieldRefAccess", false, FieldRefTestType.Type, "BUTR.Harmony.Analyzer.Test.TestClass", "int", "_field")]
         [DataRow("FieldRefAccess", false, FieldRefTestType.String, "BUTR.Harmony.Analyzer.Test.TestClass", "int", "_field")]
         [DataRow("StaticFieldRefAccess", false, FieldRefTestType.Type, "BUTR.Harmony.Analyzer.Test.TestClass", "int", "_staticField")]
         [DataRow("StaticFieldRefAccess", false, FieldRefTestType.String, "BUTR.Harmony.Analyzer.Test.TestClass", "int", "_staticField")]
-        
+
         [DataRow("FieldRefAccess", true, FieldRefTestType.Type, "BUTR.Harmony.Analyzer.Test.TestClass", "object", "_field")]
         [DataRow("FieldRefAccess", true, FieldRefTestType.String, "BUTR.Harmony.Analyzer.Test.TestClass", "object", "_field")]
         [DataRow("StaticFieldRefAccess", true, FieldRefTestType.Type, "BUTR.Harmony.Analyzer.Test.TestClass", "object", "_staticField")]
