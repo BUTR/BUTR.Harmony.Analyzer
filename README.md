@@ -53,7 +53,7 @@ AccessTools.Method(type, "MemberName");
 
 ## Rules
 
-You'll find the rules in the documentation: [the rules and their explanation](https://github.com/BUTR/BUTR.Harmony.Analyzer/tree/main/docs)
+You'll find the rules in the documentation: [the rules and their explanation](https://github.com/BUTR/BUTR.Harmony.Analyzer/tree/master/docs)
 
 ## Installation
 
