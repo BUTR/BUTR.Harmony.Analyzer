@@ -74,6 +74,8 @@ The following API's are supported:
 * StructFieldRefAccess
 
 ## Additional Analyzers
+We provide conversions from static typed check from AccessTools and SymbolExtensions to dynamic string based, marked by default as suggestions.
+
 We believe that static typed member check (via `typeof(Type)`) adds more problems than it solves, because we are bound to the public ABI of the library that is patched.  
 Instead, we suggest to use dynamic typed member check (via a string containing the full name of the type).  
 Common sense would suggest that this is a bad idea, since you can't check whether the member you want to get get exists, but the sole purpose of `BUTR.Harmony.Analyzer` is to solve this exact problem by creating warnings at compile time if the type was not found.
