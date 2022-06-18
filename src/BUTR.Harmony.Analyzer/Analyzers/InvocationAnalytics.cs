@@ -175,10 +175,8 @@ namespace BUTR.Harmony.Analyzer.Analyzers
 
         private static void AnalyzeFieldRefAccess(GenericContext ctx, OperationAnalysisContext context, IInvocationOperation operation, InvocationExpressionSyntax invocation, bool staticCheck)
         {
-            if (context.Compilation.GetTypeByMetadataName(typeof(string).FullName) is not { } stringSymbol) return;
             if (operation.TargetMethod.Parameters.Length != 1) return;
-            if (!operation.TargetMethod.Parameters[0].Type.Equals(stringSymbol, SymbolEqualityComparer.Default)) return;
-
+            
             if (operation.TargetMethod.Arity == 1)
             {
                 var fieldType = operation.TargetMethod.TypeArguments[0];
