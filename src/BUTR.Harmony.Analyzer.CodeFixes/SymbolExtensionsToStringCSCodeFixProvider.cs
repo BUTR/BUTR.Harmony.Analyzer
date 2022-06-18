@@ -36,7 +36,7 @@ namespace BUTR.Harmony.Analyzer
                 if (_semanticModel.GetSymbolInfo(lambdaExpression.Body).Symbol is not { } lambdaBodySymbol) return argumentList;
                 var typeName = NameFormatter.ReflectionName(lambdaBodySymbol.ContainingType);
                 var memberName = lambdaBodySymbol.MetadataName;
-                
+
                 return argumentList.WithArguments(arguments
                     .RemoveAt(0)
                     .Insert(0, SyntaxFactory.Argument(SyntaxFactory.ParseExpression($"\"{typeName}:{memberName}\""))));
@@ -69,7 +69,7 @@ namespace BUTR.Harmony.Analyzer
                 return identifier;
             }
         }
-        
+
         private const string title = "Convert to string";
 
         public static readonly IReadOnlyDictionary<string, string> ReplacementTable = new Dictionary<string, string>
@@ -95,7 +95,7 @@ namespace BUTR.Harmony.Analyzer
             var nodeToFix = root?.FindNode(context.Span, getInnermostNodeForTie: true);
             if (nodeToFix is not LambdaExpressionSyntax lambdaExpressionSyntax)
                 return;
-            
+
             context.RegisterCodeFix(
                 CodeAction.Create(
                     title: title,
@@ -103,7 +103,7 @@ namespace BUTR.Harmony.Analyzer
                     equivalenceKey: title),
                 context.Diagnostics);
         }
-        
+
         private static async Task<Document> TypeOfToStringAsync(Document document, LambdaExpressionSyntax nodeToFix, CancellationToken ct)
         {
             if (nodeToFix.Parent is not ArgumentSyntax argument) return document;
@@ -117,7 +117,7 @@ namespace BUTR.Harmony.Analyzer
 
             if (semanticModel.GetSymbolInfo(invocationExpression).Symbol is not IMethodSymbol methodSymbol) return document;
             if (!NameFormatter.ReflectionName(methodSymbol.ContainingType).Contains("SymbolExtensions")) return document;
-            
+
             editor.ReplaceNode(invocationExpression, new Rewriter(editor.SemanticModel).Visit(invocationExpression));
 
             return editor.GetChangedDocument();

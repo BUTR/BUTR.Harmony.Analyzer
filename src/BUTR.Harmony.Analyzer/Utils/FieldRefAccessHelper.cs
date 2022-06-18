@@ -15,7 +15,7 @@ namespace BUTR.Harmony.Analyzer.Utils
             var split = typeSemicolonFieldname.Split(':');
             var typeName = split[0];
             var fieldname = split[1];
-            
+
             var type = FindAndReportForType(context, typeName);
             if (type is null)
             {
@@ -39,7 +39,7 @@ namespace BUTR.Harmony.Analyzer.Utils
                 return CodeRoslynParser.FindMemberAndCheckType(context, objectType, fieldType, fieldName, staticCheck);
             }
         }
-        
+
         private static INamedTypeSymbol? FindAndReportForType(GenericContext context, string typeName)
         {
             var type = context.Compilation.GetAssemblies().Select(a => a.GetTypeByMetadataName(typeName)).FirstOrDefault(t => t is not null);

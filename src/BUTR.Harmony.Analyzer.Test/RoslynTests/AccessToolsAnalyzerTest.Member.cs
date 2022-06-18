@@ -233,7 +233,7 @@ namespace BUTR.Harmony.Analyzer.Test
         {
             await CreateProjectBuilder().WithSourceCode(SourceCode(method, isCorrect, testType, type, member)).ValidateAsync();
         }
-        
+
         ///
 
         [DataTestMethod]

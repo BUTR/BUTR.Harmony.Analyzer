@@ -47,7 +47,7 @@ namespace BUTR.Harmony.Analyzer.Utils
                 {
                     return ImmutableArray<ITypeSymbol>.Empty;
                 }
-                
+
                 var type = semanticModel.GetTypeInfo(expression.Type, ct);
                 if (type.Type is INamedTypeSymbol namedTypeSymbol)
                 {
@@ -57,7 +57,7 @@ namespace BUTR.Harmony.Analyzer.Utils
 
             return builder.ToImmutable();
         }
-        
+
         public static string? GetString(SemanticModel? semanticModel, ArgumentSyntax argument, CancellationToken ct)
         {
             if (semanticModel is null)

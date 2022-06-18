@@ -29,7 +29,7 @@ namespace BUTR.Harmony.Analyzer
             var nodeToFix = root?.FindNode(context.Span, getInnermostNodeForTie: true);
             if (nodeToFix is not TypeOfExpressionSyntax typeOfExpression)
                 return;
-            
+
             context.RegisterCodeFix(
                 CodeAction.Create(
                     title: title,
@@ -37,14 +37,14 @@ namespace BUTR.Harmony.Analyzer
                     equivalenceKey: title),
                 context.Diagnostics);
         }
-        
+
         private static async Task<Document> TypeOfToStringAsync(Document document, TypeOfExpressionSyntax nodeToFix, CancellationToken ct)
         {
             if (nodeToFix.Parent is not ArgumentSyntax argument) return document;
             if (argument.Parent is not ArgumentListSyntax argumentList) return document;
             if (argumentList.Arguments.Count < 2) return document;
             if (!document.SupportsSemanticModel) return document;
-            
+
             var semanticModel = await document.GetSemanticModelAsync(ct).ConfigureAwait(false);
             var editor = await DocumentEditor.CreateAsync(document, ct).ConfigureAwait(false);
 
@@ -55,7 +55,7 @@ namespace BUTR.Harmony.Analyzer
                 .RemoveAt(0)
                 .RemoveAt(0)
                 .Insert(0, SyntaxFactory.Argument(SyntaxFactory.ParseExpression($"\"{typeName}:{memberName}\"")))));
-            
+
             return editor.GetChangedDocument();
         }
     }

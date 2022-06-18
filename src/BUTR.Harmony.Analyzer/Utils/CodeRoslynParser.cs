@@ -13,7 +13,7 @@ namespace BUTR.Harmony.Analyzer.Utils
         public static IEnumerable<Diagnostic> FindMember(GenericContext context, ITypeSymbol typeSymbol, MemberFlags memberFlags, string memberName, ImmutableArray<ITypeSymbol>? paramTypes, ImmutableArray<ArgumentType>? paramVariations)
         {
             memberFlags &= ~MemberFlags.Delegate;
-            
+
             var checkBase = !memberFlags.HasFlag(MemberFlags.Declared);
             memberFlags &= ~MemberFlags.Declared;
 
@@ -124,22 +124,22 @@ namespace BUTR.Harmony.Analyzer.Utils
                         yield return RuleIdentifiers.ReportMember(context, NameFormatter.ReflectionName(objectType), fieldName);
                         yield break;
                     }
-                    
+
                     if (!staticCheck && member.IsStatic)
                     {
                         yield return RuleIdentifiers.ReportNotInstanceField(context, fieldName);
                         yield break;
                     }
-            
+
                     if (staticCheck && !member.IsStatic)
                     {
                         yield return RuleIdentifiers.ReportNotStaticField(context, fieldName);
                         yield break;
                     }
-                    
+
                     var fieldTypeName = NameFormatter.ReflectionName(fieldType);
                     var fieldSymbolName = NameFormatter.ReflectionName(fieldSymbol.Type);
-                    if (!string.Equals(fieldTypeName, fieldSymbolName)  && !fieldTypeName.Equals("System.Object", StringComparison.Ordinal))
+                    if (!string.Equals(fieldTypeName, fieldSymbolName) && !fieldTypeName.Equals("System.Object", StringComparison.Ordinal))
                     {
                         yield return RuleIdentifiers.ReportWrongType(context, NameFormatter.ReflectionName(objectType), fieldTypeName, fieldSymbolName);
                         yield break;
