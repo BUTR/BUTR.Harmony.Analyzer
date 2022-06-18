@@ -79,6 +79,8 @@ namespace BUTR.Harmony.Analyzer
             {"GetFieldRefAccess", "FieldRefAccess"},
             {"GetMethodInfo", "DeclaredMethod"},
             {"GetPropertyInfo", "DeclaredProperty"},
+            {"GetPropertyGetter", "DeclaredPropertyGetter"},
+            {"GetPropertySetter", "DeclaredPropertySetter"},
             {"GetStaticFieldRefAccess", "StaticFieldRefAccess"},
             {"GetStructFieldRefAccess", "StructFieldRefAccess"},
         };
