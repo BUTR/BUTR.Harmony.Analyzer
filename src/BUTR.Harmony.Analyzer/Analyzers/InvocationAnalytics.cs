@@ -176,7 +176,7 @@ namespace BUTR.Harmony.Analyzer.Analyzers
         private static void AnalyzeFieldRefAccess(GenericContext ctx, OperationAnalysisContext context, IInvocationOperation operation, InvocationExpressionSyntax invocation, bool staticCheck)
         {
             if (operation.TargetMethod.Parameters.Length != 1) return;
-            
+
             if (operation.TargetMethod.Arity == 1)
             {
                 var fieldType = operation.TargetMethod.TypeArguments[0];
