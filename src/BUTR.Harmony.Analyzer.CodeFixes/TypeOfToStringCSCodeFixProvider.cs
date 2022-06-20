@@ -42,19 +42,29 @@ namespace BUTR.Harmony.Analyzer
         {
             if (nodeToFix.Parent is not ArgumentSyntax argument) return document;
             if (argument.Parent is not ArgumentListSyntax argumentList) return document;
-            if (argumentList.Arguments.Count < 2) return document;
             if (!document.SupportsSemanticModel) return document;
 
             var semanticModel = await document.GetSemanticModelAsync(ct).ConfigureAwait(false);
             var editor = await DocumentEditor.CreateAsync(document, ct).ConfigureAwait(false);
 
             var arguments = argumentList.Arguments;
-            var typeName = RoslynHelper.GetString(semanticModel, arguments[0], ct);
-            var memberName = RoslynHelper.GetString(semanticModel, arguments[1], ct);
-            editor.ReplaceNode(argumentList, argumentList.WithArguments(arguments
-                .RemoveAt(0)
-                .RemoveAt(0)
-                .Insert(0, SyntaxFactory.Argument(SyntaxFactory.ParseExpression($"\"{typeName}:{memberName}\"")))));
+            if (argumentList.Arguments.Count == 1)
+            {
+                var typeName = RoslynHelper.GetString(semanticModel, arguments[0], ct);
+                editor.ReplaceNode(argumentList, argumentList.WithArguments(arguments
+                    .RemoveAt(0)
+                    .Insert(0, SyntaxFactory.Argument(SyntaxFactory.ParseExpression($"\"{typeName}\"")))));
+            }
+
+            if (argumentList.Arguments.Count >= 2)
+            {
+                var typeName = RoslynHelper.GetString(semanticModel, arguments[0], ct);
+                var memberName = RoslynHelper.GetString(semanticModel, arguments[1], ct);
+                editor.ReplaceNode(argumentList, argumentList.WithArguments(arguments
+                    .RemoveAt(0)
+                    .RemoveAt(0)
+                    .Insert(0, SyntaxFactory.Argument(SyntaxFactory.ParseExpression($"\"{typeName}:{memberName}\"")))));
+            }
 
             return editor.GetChangedDocument();
         }
