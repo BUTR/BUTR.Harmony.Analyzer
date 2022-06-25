@@ -38,7 +38,7 @@ namespace BUTR.Harmony.Analyzer.Analyzers
             if (context.Compilation.GetTypeByMetadataName(typeof(string).FullName) is not { } stringSymbol) return;
             if (context.Operation is not IInvocationOperation { Syntax: InvocationExpressionSyntax invocationExpressionSyntax } invocationOperation) return;
             if (!invocationOperation.TargetMethod.ContainingType.Name.StartsWith("AccessTools", StringComparison.Ordinal)) return;
-            
+
             if (invocationOperation.TargetMethod.Parameters.Length >= 1)
             {
                 if (!invocationOperation.TargetMethod.Parameters[0].Type.Equals(typeSymbol, SymbolEqualityComparer.Default)) return;
@@ -48,7 +48,7 @@ namespace BUTR.Harmony.Analyzer.Analyzers
                 if (!invocationOperation.TargetMethod.Parameters[0].Type.Equals(typeSymbol, SymbolEqualityComparer.Default)) return;
                 if (!invocationOperation.TargetMethod.Parameters[1].Type.Equals(stringSymbol, SymbolEqualityComparer.Default)) return;
             }
-            
+
             var typeInfos = RoslynHelper.GetTypeInfos(invocationOperation.SemanticModel, invocationExpressionSyntax.ArgumentList.Arguments[0], context.CancellationToken);
             if (typeInfos.IsEmpty) return;
 
