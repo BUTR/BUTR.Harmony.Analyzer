@@ -2,6 +2,7 @@
 
 using Microsoft.CodeAnalysis;
 
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -10,11 +11,11 @@ namespace BUTR.Harmony.Analyzer.Utils
 {
     internal static class FieldRefAccessHelper
     {
-        public static void FindAndReportForFieldRefAccess(GenericContext context, ITypeSymbol fieldType, string typeSemicolonFieldname, bool staticCheck)
+        public static void FindAndReportForFieldRefAccess(GenericContext context, ITypeSymbol fieldType, string typeSemicolonFieldName, bool staticCheck)
         {
-            var split = typeSemicolonFieldname.Split(':');
-            var typeName = split[0];
-            var fieldname = split[1];
+            var split = typeSemicolonFieldName.Split(':') ?? Array.Empty<string>();
+            var typeName = split.Length > 0 ? split[0] : string.Empty;
+            var fieldName = split.Length > 1 ? split[1] : string.Empty;;
 
             var type = FindAndReportForType(context, typeName);
             if (type is null)
@@ -22,7 +23,7 @@ namespace BUTR.Harmony.Analyzer.Utils
                 return;
             }
 
-            foreach (var diagnostic in DiagnosticsFieldRefAccess(context, type, fieldType, fieldname, staticCheck))
+            foreach (var diagnostic in DiagnosticsFieldRefAccess(context, type, fieldType, fieldName, staticCheck))
             {
                 context.ReportDiagnostic(diagnostic);
             }

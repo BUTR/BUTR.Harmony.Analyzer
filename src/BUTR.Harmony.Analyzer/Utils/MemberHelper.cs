@@ -2,6 +2,7 @@
 
 using Microsoft.CodeAnalysis;
 
+using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
@@ -73,9 +74,9 @@ namespace BUTR.Harmony.Analyzer.Utils
             var diagnostics = new Dictionary<ITypeSymbol, ImmutableArray<Diagnostic>>();
             foreach (var typeSemicolonMember in typeSemicolonMembers)
             {
-                var split = typeSemicolonMember.Split(':');
-                var typeName = split[0];
-                var memberName = split[1];
+                var split = typeSemicolonMember.Split(':') ?? Array.Empty<string>();
+                var typeName = split.Length > 0 ? split[0] : string.Empty;
+                var memberName = split.Length > 1 ? split[1] : string.Empty;;
 
                 var type = FindAndReportForType(context, typeName);
                 if (type is null)
